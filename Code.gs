@@ -83,12 +83,17 @@ function getData(request) {
   
   var requestEndpoint = "https://graph.facebook.com/v5.0/"+pageId+"/posts?"
   
-  var timeRange = "{'since':'" + startDate.toISOString().slice(0, 10) + "','until':'" + endDate.toISOString().slice(0, 10) + "'}";
+  var timeRange = "&since=" + startDate.toISOString().slice(0, 10) + "&until=" + endDate.toISOString().slice(0, 10);
+  
+  // Determine if start date is the same as end date
+  if (startDate.toISOString().slice(0, 10) == endDate.toISOString().slice(0, 10)) {
+    timeRange = "&since=" + startDate.toISOString().slice(0, 10);
+  }
 
   var requestUrl = requestEndpoint += "time_increment=1";
   
   requestUrl += "&fields=message,story,created_time,permalink_url,likes.summary(true)";
-  requestUrl += "&time_range=" + encodeURIComponent(timeRange);
+  requestUrl += timeRange;
   
   console.log(requestUrl);
        

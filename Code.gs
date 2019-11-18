@@ -79,18 +79,15 @@ function getData(request) {
   var startDate = new Date(request['dateRange'].startDate);
   var endDate = new Date(request['dateRange'].endDate);
 
-  var adsAccountId = request.configParams['page_id'];
+  var pageId = request.configParams['page_id'];
   
-  var requestEndpoint = "https://graph.facebook.com/v5.0/act_"+adsAccountId+"/insights?"
+  var requestEndpoint = "https://graph.facebook.com/v5.0/"+pageId+"/posts?"
   
   var timeRange = "{'since':'" + startDate.toISOString().slice(0, 10) + "','until':'" + endDate.toISOString().slice(0, 10) + "'}";
 
   var requestUrl = requestEndpoint += "time_increment=1";
   
-  requestUrl += "&limit=10000";
-  requestUrl += "&level=adset";
-  //requestUrl += "&breakdowns=['country']";
-  requestUrl += "&fields=campaign_name,adset_name,impressions,clicks,spend,actions,action_values";
+  requestUrl += "&fields=message,story,created_time,permalink_url,likes.summary(true)";
   requestUrl += "&time_range=" + encodeURIComponent(timeRange);
   
   console.log(requestUrl);
@@ -133,56 +130,32 @@ function reportToRows(requestedFields, report) {
   
   for( var i = 0; i < report.data.length; i++){
     var row = [];
+    var id = report.data[i]['id'];
     
-    var campaign = report.data[i]['campaign_name'];
-    var adset = report.data[i]['adset_name'];
-    var impressions = report.data[i]['impressions'];
-    var spend = report.data[i]['spend'];
-    var clicks = report.data[i]['clicks'];
-    var date = report.data[i]['date_start'];
-    //var gender = report.data[i]['gender'];
-    //var age = report.data[i]['age'];
-    //var country = report.data[i]['country'];
+    //Return date object to ISO formatted string
+    var date = new Date(report.data[i]['created_time']).toISOString().slice(0, 10);
+    console.log(date);
+    var post = report.data[i]['message'] || report.data[i]['story'];
+    var link = report.data[i]['permalink_url'];
+    var likes = 0;
     
-    var transactions = 0;
-    var revenue = 0;
-    
-    if( 'actions' in report.data[i] ){    
-      for(var j = 0; j < report.data[i]['actions'].length; j++ ){
-        if( report.data[i]['actions'][j]['action_type'] == 'offsite_conversion.fb_pixel_purchase' ){
-          transactions = report.data[i]['actions'][j]['value'];
-          break;
-        }
-      }
-    }
-
-    if( 'action_values' in report.data[i] ){    
-      for(var j = 0; j < report.data[i]['action_values'].length; j++ ){
-        if( report.data[i]['action_values'][j]['action_type'] == 'offsite_conversion.fb_pixel_purchase' ){
-          revenue = report.data[i]['action_values'][j]['value'];
-          break;
-        }
-      }
+    // Determine if likes object exist
+    if (typeof report.data[i]['likes'] !== 'undefined') {
+      likes = report.data[i]['likes']['summary']['total_count'];
     }
         
     requestedFields.asArray().forEach(function (field) {
       switch (field.getId()) {
           case 'date':
             return row.push(date.replace(/-/g,''));
-          case 'campaign':
-            return row.push(campaign);
-          case 'impressions':
-            return row.push(impressions);
-          case 'clicks':
-            return row.push(clicks);
-          case 'spend':
-            return row.push(spend);
-          case 'transactions':
-            return row.push(transactions);
-          case 'revenue':
-            return row.push(revenue);
-          case 'adset':
-            return row.push(adset);
+          case 'id':
+            return row.push(id);
+          case 'post':
+            return row.push(post);
+          case 'link':
+            return row.push(link);
+          case 'likes':
+            return row.push(likes);
       }
     });
     
@@ -194,7 +167,7 @@ function reportToRows(requestedFields, report) {
 
 function isAdminUser(){
  var email = Session.getEffectiveUser().getEmail();
-  if( email == 'bjoern.stickler@reprisedigital.com' ){
+  if( email == 'steven@itsnotthatkind.org' ){
     return true; 
   } else {
     return false;
@@ -224,7 +197,7 @@ function getOAuthService() {
     .setClientSecret(CLIENT_SECRET)
     .setPropertyStore(PropertiesService.getUserProperties())
     .setCallbackFunction('authCallback')
-    .setScope('ads_read');
+    .setScope('manage_pages');
 };
 
 function authCallback(request) {

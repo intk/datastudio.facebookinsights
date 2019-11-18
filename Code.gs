@@ -42,7 +42,7 @@ function getFields() {
   fields.newDimension()
       .setId('link')
       .setName('Link')
-      .setType(types.TEXT);    
+      .setType(types.URL);    
   
   fields.newMetric()
       .setId('likes')

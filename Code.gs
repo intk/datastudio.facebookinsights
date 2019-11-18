@@ -8,10 +8,10 @@ function getConfig() {
   .setText('Please enter the configuration data for your Facebook connector');
 
   config.newTextInput()
-      .setId('ads_account_id')
-      .setName('Enter your Facebook Ads Account Id')
-      .setHelpText('')  
-      .setPlaceholder('1046444455411879')
+      .setId('page_id')
+      .setName('Enter your Facebook Page Id')
+      .setHelpText('Find the page Id on the \'About\' section of your page')  
+      .setPlaceholder('Enter Facebook Page Id here')
       .setAllowOverride(false);
   
   config.setDateRangeRequired(true);
@@ -30,58 +30,24 @@ function getFields() {
       .setType(types.YEAR_MONTH_DAY);
   
   fields.newDimension()
-      .setId('campaign')
-      .setName('Campaign')
+      .setId('id')
+      .setName('Id')
       .setType(types.TEXT);  
 
   fields.newDimension()
-      .setId('adset')
-      .setName('Adset')
+      .setId('post')
+      .setName('Post')
+      .setType(types.TEXT);  
+
+  fields.newDimension()
+      .setId('link')
+      .setName('Link')
       .setType(types.TEXT);    
   
-  /*fields.newDimension()
-      .setId('gender')
-      .setName('Gender')
-      .setType(types.TEXT);  
-  
-  fields.newDimension()
-      .setId('age')
-      .setName('Age')
-      .setType(types.TEXT);  
-  
-  fields.newDimension()
-      .setId('country')
-      .setName('Country')
-      .setType(types.TEXT); */
-  
   fields.newMetric()
-      .setId('impressions')
-      .setName('Impressions')
+      .setId('likes')
+      .setName('Likes')
       .setType(types.NUMBER)
-      .setAggregation(aggregations.SUM);
-  
-  fields.newMetric()
-      .setId('clicks')
-      .setName('Clicks')
-      .setType(types.NUMBER)
-      .setAggregation(aggregations.SUM);
-
-  fields.newMetric()
-      .setId('spend')
-      .setName('Spend')
-      .setType(types.CURRENCY_EUR)
-      .setAggregation(aggregations.SUM);
-
-  fields.newMetric()
-      .setId('transactions')
-      .setName('Transactions')
-      .setType(types.NUMBER)
-      .setAggregation(aggregations.SUM);
-
-  fields.newMetric()
-      .setId('revenue')
-      .setName('Revenue')
-      .setType(types.CURRENCY_EUR)
       .setAggregation(aggregations.SUM);
     
   return fields;
@@ -113,7 +79,7 @@ function getData(request) {
   var startDate = new Date(request['dateRange'].startDate);
   var endDate = new Date(request['dateRange'].endDate);
 
-  var adsAccountId = request.configParams['ads_account_id'];
+  var adsAccountId = request.configParams['page_id'];
   
   var requestEndpoint = "https://graph.facebook.com/v5.0/act_"+adsAccountId+"/insights?"
   

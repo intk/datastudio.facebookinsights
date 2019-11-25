@@ -25,28 +25,40 @@ function getFields() {
   var aggregations = cc.AggregationType;  
   
   fields.newDimension()
-      .setId('date')
+      .setId('postDate')
       .setName('Date')
       .setType(types.YEAR_MONTH_DAY);
   
   fields.newDimension()
-      .setId('id')
-      .setName('Id')
+      .setId('postId')
+      .setName('Post ID')
       .setType(types.TEXT);  
 
   fields.newDimension()
-      .setId('post')
-      .setName('Post')
+      .setId('postMessage')
+      .setName('Post Message')
       .setType(types.TEXT);  
 
   fields.newDimension()
-      .setId('link')
-      .setName('Link')
+      .setId('postLink')
+      .setName('Link to post')
       .setType(types.URL);    
   
   fields.newMetric()
-      .setId('likes')
-      .setName('Likes')
+      .setId('postLikes')
+      .setName('Likes on post')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
+  fields.newMetric()
+      .setId('postComments')
+      .setName('Comments on post')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
+  fields.newMetric()
+      .setId('postShares')
+      .setName('Shares on post')
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
     
@@ -92,7 +104,7 @@ function getData(request) {
 
   var requestUrl = requestEndpoint += "time_increment=1";
   
-  requestUrl += "&fields=message,story,created_time,permalink_url,likes.summary(true)";
+  requestUrl += "&fields=message,story,created_time,permalink_url,likes.summary(true),comments.summary(true),shares";
   requestUrl += timeRange;
   
   console.log(requestUrl);
@@ -140,27 +152,42 @@ function reportToRows(requestedFields, report) {
     //Return date object to ISO formatted string
     var date = new Date(report.data[i]['created_time']).toISOString().slice(0, 10);
     console.log(date);
-    var post = report.data[i]['message'] || report.data[i]['story'];
-    var link = report.data[i]['permalink_url'];
-    var likes = 0;
+    var postMessage = report.data[i]['message'] || report.data[i]['story'];
+    var postLink = report.data[i]['permalink_url'];
+    var postLikes = 0;
     
     // Determine if likes object exist
     if (typeof report.data[i]['likes'] !== 'undefined') {
-      likes = report.data[i]['likes']['summary']['total_count'];
+      postLikes = report.data[i]['likes']['summary']['total_count'];
+    }
+    
+    var postComments = 0;
+    // Determine if comments object exist
+    if (typeof report.data[i]['comments'] !== 'undefined') {
+      postComments = report.data[i]['comments']['summary']['total_count'];
+    }
+    var postShares = 0;
+    // Determine if shares object exist
+    if (typeof report.data[i]['shares'] !== 'undefined') {
+      postShares = report.data[i]['shares']['count'];
     }
         
     requestedFields.asArray().forEach(function (field) {
       switch (field.getId()) {
-          case 'date':
+          case 'postDate':
             return row.push(date.replace(/-/g,''));
-          case 'id':
+          case 'postId':
             return row.push(id);
-          case 'post':
-            return row.push(post);
-          case 'link':
-            return row.push(link);
-          case 'likes':
-            return row.push(likes);
+          case 'postMessage':
+            return row.push(postMessage);
+          case 'postLink':
+            return row.push(postLink);
+          case 'postLikes':
+            return row.push(postLikes);
+          case 'postComments':
+            return row.push(postComments);
+          case 'postShares':
+            return row.push(postShares);
       }
     });
     

@@ -71,52 +71,57 @@ function getSchema(request) {
     return { 'schema': fields };    
 }
 
+// Get data from Facebook Graph API
+function graphData(request, query) {
+  var pageId = request.configParams['page_id'];
+  var requestEndpoint = "https://graph.facebook.com/v5.0/"+pageId+"/"
+  
+  //Get page access token
+  var tokenUrl = requestEndpoint+"?fields=access_token";
+  var tokenResponse = UrlFetchApp.fetch(tokenUrl,
+      {
+        headers: { 'Authorization': 'Bearer ' + getOAuthService().getAccessToken() },
+        muteHttpExceptions : true
+      });
+  var pageToken = JSON.parse(tokenResponse).access_token;
+  
+  // Perform API Request
+  var requestUrl = requestEndpoint+query+"&access_token="+pageToken;
+  
+  var response = UrlFetchApp.fetch(requestUrl,
+      {
+        muteHttpExceptions : true
+      });
+  
+  var parseData = JSON.parse(response);
+  
+  return parseData;
+
+}
+
 
 function getData(request) {    
-  /*var cache = CacheService.getScriptCache();    
-  var request_hash = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, JSON.stringify(request)); 
-  
-  var cached_result = JSON.parse(cache.get(request_hash));
-  
-  if( cached_result != null ){
-    return cached_result;
-  }*/
   
   var requestedFieldIds = request.fields.map(function(field) {
     return field.name;
   });
   
-  var requestedFields = getFields().forIds(requestedFieldIds);    
-
+  var requestedFields = getFields().forIds(requestedFieldIds);
+  
   var startDate = new Date(request['dateRange'].startDate);
   var endDate = new Date(request['dateRange'].endDate);
-
-  var pageId = request.configParams['page_id'];
   
-  var requestEndpoint = "https://graph.facebook.com/v5.0/"+pageId+"/posts?"
-  
-  var timeRange = "&since=" + startDate.toISOString().slice(0, 10) + "&until=" + endDate.toISOString().slice(0, 10);
+  var timeRangeSince = startDate.toISOString().slice(0, 10);
+  var timeRangeUntil = endDate.toISOString().slice(0, 10);
+  var timeRange = "&since="+timeRangeSince+"&until="+timeRangeUntil;
   
   // Determine if start date is the same as end date
   if (startDate.toISOString().slice(0, 10) == endDate.toISOString().slice(0, 10)) {
-    timeRange = "&since=" + startDate.toISOString().slice(0, 10);
+    timeRange = "&since="+timeRangeSince;
   }
-
-  var requestUrl = requestEndpoint += "time_increment=1";
   
-  requestUrl += "&fields=message,story,created_time,permalink_url,likes.summary(true),comments.summary(true),shares";
-  requestUrl += timeRange;
+  var parseData = graphData(request, "posts?time_increment=1&fields=message,story,created_time,permalink_url,likes.summary(true),comments.summary(true),shares"+timeRange);
   
-  console.log(requestUrl);
-       
-  var response = UrlFetchApp.fetch(requestUrl,
-      {
-        headers: { 'Authorization': 'Bearer ' + getOAuthService().getAccessToken() },
-        muteHttpExceptions : true
-      });
-
-  var parseData = JSON.parse(response)
-
   if(parseData.hasOwnProperty('error')){
     // TODO
   }  
@@ -137,7 +142,6 @@ function getData(request) {
   };  
   
   //cache.put(request_hash, JSON.stringify(result));
-  console.info(result)
   return result;  
 }
 
@@ -151,7 +155,6 @@ function reportToRows(requestedFields, report) {
     
     //Return date object to ISO formatted string
     var date = new Date(report.data[i]['created_time']).toISOString().slice(0, 10);
-    console.log(date);
     var postMessage = report.data[i]['message'] || report.data[i]['story'];
     var postLink = report.data[i]['permalink_url'];
     var postLikes = 0;
@@ -229,7 +232,7 @@ function getOAuthService() {
     .setClientSecret(CLIENT_SECRET)
     .setPropertyStore(PropertiesService.getUserProperties())
     .setCallbackFunction('authCallback')
-    .setScope('manage_pages');
+    .setScope('pages_show_list, manage_pages, read_insights');
 };
 
 function authCallback(request) {

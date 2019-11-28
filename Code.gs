@@ -42,7 +42,12 @@ function getFields() {
   fields.newDimension()
       .setId('postLink')
       .setName('Link to post')
-      .setType(types.URL);    
+      .setType(types.URL);
+  
+  fields.newDimension()
+      .setId('pageFansGender')
+      .setName('Gender')
+      .setType(types.TEXT);
   
   fields.newMetric()
       .setId('postLikes')
@@ -64,7 +69,7 @@ function getFields() {
   
   fields.newMetric()
       .setId('pageLikes')
-      .setName('Likes on page')
+      .setName('Total Likes')
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
     
@@ -128,10 +133,12 @@ function getData(request) {
   
   var postData = graphData(request, "posts?time_increment=1&fields=message,story,created_time,permalink_url,likes.summary(true),comments.summary(true),shares"+timeRange);
   var pageLikesData = graphData(request, "insights/page_fans?fields=values&since="+timeRangeUntil);
+  var pageFansGenderAgeData = graphData(request, "insights/page_fans_gender_age?fields=values&since="+timeRangeUntil);
   
   var outputData = {};
   outputData.posts = postData;
   outputData.page_likes = pageLikesData;
+  outputData.page_fans_gender_age = pageFansGenderAgeData;
   
   /*
   if(parseData.hasOwnProperty('error')){
@@ -207,14 +214,67 @@ function reportPageLikes(report) {
   
 }
 
+function reportGenderAge(report, field) {
+  var rows = [];
+  //Define fans per gender (female, male, unknown)
+  var genders = {};
+  genders['f'] = 0;
+  genders['m'] = 0;
+  genders['u'] = 0;
+  
+  // Only report last number of fans per gender/age within date range
+  // Get gender/age objects
+  var results = report.data[0].values[0]['value'];
+  
+  // Loop all objects
+  for (var property in results) {
+    if (results.hasOwnProperty(property)) {
+      if (property.indexOf('F') > -1) {
+        genders['f'] += results[property];
+      }
+      if (property.indexOf('M') > -1) {
+        genders['m'] += results[property];
+      }
+      if (property.indexOf('U') > -1) {
+        genders['u'] += results[property];
+      }
+      //console.log('%s: %s', property, results[property]);
+    }
+  }
+  
+  for (var property in genders) {
+    var row = {};
+    if (genders.hasOwnProperty(property)) {
+      if (property.indexOf('f') > -1) {
+        row['pageFansGender'] = 'Female';
+        row['pageLikes'] = genders[property];
+      }
+      if (property.indexOf('m') > -1) {
+        row['pageFansGender'] = 'Male';
+        row['pageLikes'] = genders[property];
+      }
+      if (property.indexOf('u') > -1) {
+        row['pageFansGender'] = 'Unknown';
+        row['pageLikes'] = genders[property];
+      }
+    }
+    rows.push(row);
+     
+   }
+  
+  return rows;
+  
+}
 
 function reportToRows(requestedFields, report) {
   rows = [];
   var postsData = reportPosts(report.posts);
   var pageLikesData = reportPageLikes(report.page_likes);
+  var pageFansGenderData = reportGenderAge(report.page_fans_gender_age, 'gender');
+  console.log(pageFansGenderData);
     
   // Merge data
-  var data = postsData.concat(pageLikesData);
+  var data = postsData.concat(pageFansGenderData);
   console.log(JSON.stringify(data));
 
    
@@ -241,12 +301,17 @@ function reportToRows(requestedFields, report) {
           case 'postShares':
             return row.push(data[i]["postShares"]);
         }
-      }
+      } 
       
-      // Assign post data values to rows
-      if (field.getId().indexOf('page') > -1) {
-        return row.push(data[i]["pageLikes"]);
-      }
+      // Assign gender data ans pageLikes values to rows
+       if (field.getId().indexOf('page') > -1 && typeof data[i]["pageFansGender"] !== 'undefined') {
+         switch (field.getId()) {
+          case 'pageFansGender':
+            return row.push(data[i]["pageFansGender"]);
+          case 'pageLikes':
+            return row.push(data[i]["pageLikes"]);
+         }
+       }
       
     });
     if (row.length > 0) {

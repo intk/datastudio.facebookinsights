@@ -49,6 +49,11 @@ function getFields() {
       .setName('Gender')
       .setType(types.TEXT);
   
+   fields.newDimension()
+      .setId('pageFansAge')
+      .setName('Age')
+      .setType(types.TEXT);
+  
   fields.newMetric()
       .setId('postLikes')
       .setName('Likes on post')
@@ -87,6 +92,83 @@ function graphData(request, query) {
   var pageId = request.configParams['page_id'];
   var requestEndpoint = "https://graph.facebook.com/v5.0/"+pageId+"/"
   
+  // Set start and end date for query
+  var startDate = new Date(request['dateRange'].startDate);
+  var endDate = new Date(request['dateRange'].endDate);
+  
+  /*
+  -------------------------------------------------------
+  Create chunks of the date range because of query limit
+  -------------------------------------------------------
+  */
+  
+  var offset = 2; // Results are reported the day after the startDate and between 'until'. So 2 days are added.
+  var chunkLimit = 93 - offset; // Limit of 93 days of data per query
+  var daysBetween = (endDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24); // Calculate time difference in milliseconds. Then divide it with milliseconds per day 
+  
+  console.log("query: %s, startDate: %s, endDate: %s, daysBetween: %s", query, startDate, endDate, daysBetween);
+    
+  // Split date range into chunks
+  var queryChunks = [];
+  
+  // If days between startDate and endDate are more than the limit
+  if (daysBetween > chunkLimit) {
+    var chunksAmount = daysBetween/chunkLimit;
+     console.log("ChunksAmount: %s", chunksAmount);
+        
+    // Make chunks per rounded down chunksAmount
+    for (var i = 0; i < Math.floor(chunksAmount); i++) {
+      // Define chunk object
+      var chunk = {};
+      
+      // If no chunks have been added to the queryChunks list
+      if (queryChunks.length < 1) {
+        chunk['since'] = startDate;
+        chunk['until'] = new Date(startDate.getTime()+(86400000*(chunkLimit+offset)));
+              
+      // If a chunk already is added to the queryChunks list
+      } else {
+        chunk['since'] = new Date(queryChunks[i-1]['until'].getTime()-(86400000*(offset-1))); // 'Until' has offset of 2 days. 'Since' should start 1 day after last date range chunk
+        chunk['until'] = new Date(chunk['since'].getTime()+(86400000*(chunkLimit+offset-1)));
+      }
+      
+      // Add chunk to queryChunks list
+      queryChunks.push(chunk);
+    }
+    
+    // Make chunk of leftover days if there are any
+    if (chunksAmount - queryChunks.length > 0) {
+      
+      var leftoverDays = Math.floor((chunksAmount - queryChunks.length) * chunkLimit) // Decimal number * chunkLimit rounded down gives the amount of leftover days
+      console.log("LeftoverDays: %s", leftoverDays);
+      var chunk = {};
+      chunk['since'] = new Date(queryChunks[queryChunks.length-1]['until'].getTime()-(86400000*(offset-1))); // 'Until' has offset of 2 days. 'Since' should start 1 day after last date range chunk
+      chunk['until'] = new Date(chunk['since'].getTime()+(86400000*(leftoverDays + offset)));
+      
+      // Add chunk to queryChunks list
+      queryChunks.push(chunk);
+     
+    }
+    
+  }
+  // If days between startDate and endDate are less than or equal to the limit
+  else {
+      var chunk = {};
+      chunk['since'] = startDate;
+      chunk['until'] = new Date(endDate.getTime()+(86400000*offset)); //endDate + until offset in milliseconds
+    
+      // Add chunk to queryChunks list
+      queryChunks.push(chunk);
+  }
+   
+  /*
+  ------------------------------------------------------
+  Loop the chunks and perform the API request per chunk
+  ------------------------------------------------------
+  */
+  
+  
+  /*
   //Get page access token
   var tokenUrl = requestEndpoint+"?fields=access_token";
   var tokenResponse = UrlFetchApp.fetch(tokenUrl,
@@ -95,23 +177,82 @@ function graphData(request, query) {
         muteHttpExceptions : true
       });
   var pageToken = JSON.parse(tokenResponse).access_token;
+  */
   
-  // Perform API Request
-  var requestUrl = requestEndpoint+query+"&access_token="+pageToken;
+  //Use pageToken for testing purposes
+  var pageToken = PAGE_TOKEN;
   
-  var response = UrlFetchApp.fetch(requestUrl,
+  // Define data object to push the graph data to
+  var dataObj = {};
+  
+  
+  // If posts object
+  
+  if (query.indexOf('posts') > -1) {
+    // Set date range parameters
+    var dateRangeSince = queryChunks[0]['since'].toISOString().slice(0, 10);
+    var dateRangeUntil = queryChunks[queryChunks.length-1]['until'].toISOString().slice(0, 10);
+    
+    var dateRange = "&since="+dateRangeSince+"&until="+dateRangeUntil;
+        
+    // Perform API Request
+    var requestUrl = requestEndpoint+query+dateRange+"&access_token="+pageToken;
+    
+    var response = UrlFetchApp.fetch(requestUrl,
       {
         muteHttpExceptions : true
       });
+    
+    dataObj = JSON.parse(response);
+    
+    
+  // All other objects  
+  } else {
   
-  var parseData = JSON.parse(response);
+    dataObj['data'] = [];
+    dataObj['data'][0] = {};
+    dataObj['data'][0]['values'] = [];
+    
+    // Loop queryChunks
+    for(var i = 0; i < queryChunks.length; i++) {
+      
+      // Set date range parameters
+      var dateRangeSince = queryChunks[i]['since'].toISOString().slice(0, 10);
+      var dateRangeUntil = queryChunks[i]['until'].toISOString().slice(0, 10);
+      
+      
+      var dateRange = "&since="+dateRangeSince+"&until="+dateRangeUntil;
+      
+      // Perform API Request
+      var requestUrl = requestEndpoint+query+dateRange+"&access_token="+pageToken;
+      
+      console.log(requestUrl);
+      
+      var response = UrlFetchApp.fetch(requestUrl,
+                                       {
+                                         muteHttpExceptions : true
+                                       });
+      
+      var parseData = JSON.parse(response);      
+      
+      console.log(JSON.stringify(parseData));
+      
+      // Merge data object with values from response
+      if (parseData['data'].length > 0) {
+          dataObj['data'][0]['values'].push(parseData['data'][0]['values']);
+      }
+      
+    }
+  }
   
-  return parseData;
-
+  console.log("DATA_OBJ: %s",JSON.stringify(dataObj));
+  
+  return dataObj;
 }
 
 
-function getData(request) {    
+function getData(request) {  
+  
   
   var requestedFieldIds = request.fields.map(function(field) {
     return field.name;
@@ -119,26 +260,14 @@ function getData(request) {
   
   var requestedFields = getFields().forIds(requestedFieldIds);
   
-  var startDate = new Date(request['dateRange'].startDate);
-  var endDate = new Date(request['dateRange'].endDate);
-  
-  var timeRangeSince = startDate.toISOString().slice(0, 10);
-  var timeRangeUntil = endDate.toISOString().slice(0, 10);
-  var timeRange = "&since="+timeRangeSince+"&until="+timeRangeUntil;
-  
-  // Determine if start date is the same as end date
-  if (startDate.toISOString().slice(0, 10) == endDate.toISOString().slice(0, 10)) {
-    timeRange = "&since="+timeRangeSince;
-  }
-  
-  var postData = graphData(request, "posts?time_increment=1&fields=message,story,created_time,permalink_url,likes.summary(true),comments.summary(true),shares"+timeRange);
-  var pageLikesData = graphData(request, "insights/page_fans?fields=values&since="+timeRangeUntil);
-  var pageFansGenderAgeData = graphData(request, "insights/page_fans_gender_age?fields=values&since="+timeRangeUntil);
-  
+  var postData = graphData(request, "posts?time_increment=1&fields=message,story,created_time,permalink_url,likes.summary(true),comments.summary(true),shares");
+  var pageLikesData = graphData(request, "insights/page_fans?fields=values");
+  //var pageFansGenderAgeData = graphData(request, "insights/page_fans_gender_age?fields=values");
+    
   var outputData = {};
   outputData.posts = postData;
   outputData.page_likes = pageLikesData;
-  outputData.page_fans_gender_age = pageFansGenderAgeData;
+  //outputData.page_fans_gender_age = pageFansGenderAgeData;
   
   /*
   if(parseData.hasOwnProperty('error')){
@@ -207,7 +336,9 @@ function reportPageLikes(report) {
   
   // Only report last number of page likes within date range
   var row = {};
-  row["pageLikes"] = report.data[0].values[0]['value'];
+  var valueRows = report['data'][0]['values'][0];
+  row["pageLikes"] = report['data'][0]['values'][0][valueRows.length-1]['value'];
+  console.log(JSON.stringify(report.data[0]));
   rows[0] = row;
   
   return rows;
@@ -217,10 +348,19 @@ function reportPageLikes(report) {
 function reportGenderAge(report, field) {
   var rows = [];
   //Define fans per gender (female, male, unknown)
-  var genders = {};
-  genders['f'] = 0;
-  genders['m'] = 0;
-  genders['u'] = 0;
+  var fans = {};
+  fans['Female'] = 0;
+  fans['Male'] = 0;
+  fans['Unknown'] = 0;
+  
+  // Define fans per age
+  fans['13-17'] = 0;
+  fans['18-24'] = 0;
+  fans['25-34'] = 0;
+  fans['35-44'] = 0;
+  fans['45-54'] = 0;
+  fans['55-64'] = 0;
+  fans['65+'] = 0;
   
   // Only report last number of fans per gender/age within date range
   // Get gender/age objects
@@ -229,33 +369,59 @@ function reportGenderAge(report, field) {
   // Loop all objects
   for (var property in results) {
     if (results.hasOwnProperty(property)) {
-      if (property.indexOf('F') > -1) {
-        genders['f'] += results[property];
+      
+      // Assign values to gender
+      switch (true) {
+        case (property.indexOf('F') > -1):
+        fans['Female'] += results[property];
+        break;
+        case (property.indexOf('M') > -1):
+        fans['Male'] += results[property];
+        break;
+        case (property.indexOf('U') > -1):
+        fans['Unknown'] += results[property];
+        break;
       }
-      if (property.indexOf('M') > -1) {
-        genders['m'] += results[property];
+      
+      // Assign values to age
+      switch (true) {
+        case (property.indexOf('13-17') > -1):
+          fans['13-17'] += results[property];
+          break;
+        case (property.indexOf('18-24') > -1):
+          fans['18-24'] += results[property];
+          break;
+        case (property.indexOf('25-34') > -1):
+          fans['25-34'] += results[property];
+          break;
+        case (property.indexOf('35-44') > -1):
+          fans['35-44'] += results[property];
+          break;
+        case (property.indexOf('45-54') > -1):
+          fans['45-54'] += results[property];
+          break;
+        case (property.indexOf('55-64') > -1):
+          fans['55-64'] += results[property];
+          break;
+        case (property.indexOf('65+') > -1):
+          fans['65+'] += results[property];
+          break;
       }
-      if (property.indexOf('U') > -1) {
-        genders['u'] += results[property];
-      }
+      
+      
       //console.log('%s: %s', property, results[property]);
     }
   }
   
-  for (var property in genders) {
+  for (var property in fans) {
     var row = {};
-    if (genders.hasOwnProperty(property)) {
-      if (property.indexOf('f') > -1) {
-        row['pageFansGender'] = 'Female';
-        row['pageLikes'] = genders[property];
-      }
-      if (property.indexOf('m') > -1) {
-        row['pageFansGender'] = 'Male';
-        row['pageLikes'] = genders[property];
-      }
-      if (property.indexOf('u') > -1) {
-        row['pageFansGender'] = 'Unknown';
-        row['pageLikes'] = genders[property];
+    if (fans.hasOwnProperty(property)) {
+      if (property.indexOf('Female') > -1 || property.indexOf('Male') > -1 || property.indexOf('Unknown') > -1) {
+        row['pageFansGender'] = property;
+        row['pageLikes'] = fans[property];
+      } else { 
+        row['pageFansAge'] = property;
+        row['pageLikes'] = fans[property];
       }
     }
     rows.push(row);
@@ -270,12 +436,11 @@ function reportToRows(requestedFields, report) {
   rows = [];
   var postsData = reportPosts(report.posts);
   var pageLikesData = reportPageLikes(report.page_likes);
-  var pageFansGenderData = reportGenderAge(report.page_fans_gender_age, 'gender');
-  console.log(pageFansGenderData);
+  //var pageFansGenderData = reportGenderAge(report.page_fans_gender_age, 'gender');
     
   // Merge data
-  var data = postsData.concat(pageFansGenderData);
-  console.log(JSON.stringify(data));
+  var data = postsData.concat(pageLikesData);
+  console.log("MERGED_DATA: %s",JSON.stringify(data));
 
    
   for(var i = 0; i < data.length; i++) {
@@ -303,7 +468,12 @@ function reportToRows(requestedFields, report) {
         }
       } 
       
-      // Assign gender data ans pageLikes values to rows
+      // Assign likes data values to rows
+      if (field.getId().indexOf('page') > -1) {
+        return row.push(data[i]["pageLikes"]);
+      }
+      
+      /*// Assign gender data and pageLikes values to rows
        if (field.getId().indexOf('page') > -1 && typeof data[i]["pageFansGender"] !== 'undefined') {
          switch (field.getId()) {
           case 'pageFansGender':
@@ -312,6 +482,17 @@ function reportToRows(requestedFields, report) {
             return row.push(data[i]["pageLikes"]);
          }
        }
+       */
+      
+       /*// Assign age data ans pageLikes values to rows
+       else if (field.getId().indexOf('page') > -1 && typeof data[i]["pageFansAge"] !== 'undefined') {
+         switch (field.getId()) {
+          case 'pageFansAge':
+            return row.push(data[i]["pageFansAge"]);
+          case 'pageLikes':
+            return row.push(data[i]["pageLikes"]);
+         }
+       }*/
       
     });
     if (row.length > 0) {

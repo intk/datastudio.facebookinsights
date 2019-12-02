@@ -83,6 +83,12 @@ function getFields() {
       .setName('Total Impressions')
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
+  
+   fields.newMetric()
+      .setId('pageImpressions')
+      .setName('Total Impressions')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
     
   return fields;
 }
@@ -137,7 +143,7 @@ function graphData(request, query) {
         chunk['since'] = new Date(queryChunks[i-1]['until'].getTime()-(86400000*(offset-1))); // 'Until' has offset of 2 days. 'Since' should start 1 day after last date range chunk
         chunk['until'] = new Date(chunk['since'].getTime()+(86400000*(chunkLimit+offset-1)));
       }
-      
+            
       // Add chunk to queryChunks list
       queryChunks.push(chunk);
     }
@@ -204,6 +210,8 @@ function graphData(request, query) {
     // Perform API Request
     var requestUrl = requestEndpoint+query+dateRange+"&access_token="+pageToken;
     
+    console.log(requestUrl);
+    
     var response = UrlFetchApp.fetch(requestUrl,
       {
         muteHttpExceptions : true
@@ -231,18 +239,14 @@ function graphData(request, query) {
       
       // Perform API Request
       var requestUrl = requestEndpoint+query+dateRange+"&access_token="+pageToken;
-      
-      console.log(requestUrl);
-      
+            
       var response = UrlFetchApp.fetch(requestUrl,
                                        {
                                          muteHttpExceptions : true
                                        });
       
       var parseData = JSON.parse(response);      
-      
-      console.log(JSON.stringify(parseData));
-      
+            
       // Merge data object with values from response
       if (parseData['data'].length > 0) {
           dataObj['data'][0]['values'].push(parseData['data'][0]['values']);
@@ -251,7 +255,6 @@ function graphData(request, query) {
     }
   }
   
-  console.log("DATA_OBJ: %s",JSON.stringify(dataObj));
   
   return dataObj;
 }
@@ -275,6 +278,11 @@ function getData(request) {
   outputData.posts = postData;
   outputData.page_likes = pageLikesData;
   outputData.page_impressions = pageImpressionsData;
+
+  
+  console.log(JSON.stringify(outputData));
+
+  
   
   //outputData.page_fans_gender_age = pageFansGenderAgeData;
   
@@ -286,7 +294,7 @@ function getData(request) {
   
   //Logger.log(JSON.stringify(parseData));
   
-  if(outputData.posts.data.length>0)
+  if(typeof outputData !== 'undefined')
   {    
     rows = reportToRows(requestedFields, outputData);
     // TODO: parseData.paging.next != undefined
@@ -342,12 +350,11 @@ function reportPosts(report) {
 
 function reportPageLikes(report) {
   var rows = [];
-  
+    
   // Only report last number of page likes within date range
   var row = {};
   var valueRows = report['data'][0]['values'][0];
   row["pageLikes"] = report['data'][0]['values'][0][valueRows.length-1]['value'];
-  console.log(JSON.stringify(report.data[0]));
   rows[0] = row;
   
   return rows;
@@ -357,7 +364,7 @@ function reportPageLikes(report) {
 function reportPageImpressions(report) {
   var rows = [];
   
-  // Only report last number of page likes within date range
+  // Only report last number of page impressions within date range
   var row = {};
   var valueRows = report['data'][0]['values'][0];
   row["pageImpressions"] = report['data'][0]['values'][0][valueRows.length-1]['value'];
@@ -457,16 +464,18 @@ function reportGenderAge(report, field) {
 }
 
 function reportToRows(requestedFields, report) {
-  rows = [];
-  var postsData = reportPosts(report.posts);
+  var rows = [];  
+  
+  var postsData = reportPosts(report.posts) || [];
   var pageLikesData = reportPageLikes(report.page_likes);
   var pageImpressionsData = reportPageImpressions(report.page_impressions);
+  
+  var data = [].concat(postsData, pageLikesData, pageImpressionsData);
+  
+  
   //var pageFansGenderData = reportGenderAge(report.page_fans_gender_age, 'gender');
     
   // Merge data
-  var data = postsData.concat(pageLikesData, pageImpressionsData);
-  console.log("MERGED_DATA: %s",JSON.stringify(data));
-
    
   for(var i = 0; i < data.length; i++) {
     row = [];    
@@ -498,7 +507,7 @@ function reportToRows(requestedFields, report) {
         return row.push(data[i]["pageLikes"]);
       }
       
-       // Assign likes data values to rows
+      // Assign likes data values to rows
       if (field.getId().indexOf('pageImpressions') > -1) {
         return row.push(data[i]["pageImpressions"]);
       }

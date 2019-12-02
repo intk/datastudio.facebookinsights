@@ -79,14 +79,26 @@ function getFields() {
       .setAggregation(aggregations.SUM);
   
   fields.newMetric()
-      .setId('pageImpressions')
+      .setId('pageImpressionsTotal')
       .setName('Total Impressions')
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
   
    fields.newMetric()
-      .setId('pageImpressions')
-      .setName('Total Impressions')
+      .setId('pageImpressionsOrganic')
+      .setName('Organic Impressions')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
+   fields.newMetric()
+      .setId('pageImpressionsPaid')
+      .setName('Paid Impressions')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
+  fields.newMetric()
+      .setId('pageImpressionsViral')
+      .setName('Viral Impressions')
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
     
@@ -272,13 +284,18 @@ function getData(request) {
   var postData = graphData(request, "posts?time_increment=1&fields=message,story,created_time,permalink_url,likes.summary(true),comments.summary(true),shares");
   var pageLikesData = graphData(request, "insights/page_fans?fields=values");
   var pageImpressionsData = graphData(request, "insights/page_impressions/day?fields=values");
+  var pageImpressionsOrganicData = graphData(request, "insights/page_impressions_organic/day?fields=values");
+  var pageImpressionsPaidData = graphData(request, "insights/page_impressions_paid/day?fields=values");
+   var pageImpressionsViralData = graphData(request, "insights/page_impressions_viral/day?fields=values");
   //var pageFansGenderAgeData = graphData(request, "insights/page_fans_gender_age?fields=values");
     
   var outputData = {};
   outputData.posts = postData;
   outputData.page_likes = pageLikesData;
   outputData.page_impressions = pageImpressionsData;
-
+  outputData.page_impressions_organic = pageImpressionsOrganicData;
+  outputData.page_impressions_paid = pageImpressionsPaidData;
+  outputData.page_impressions_viral = pageImpressionsViralData;
   
   console.log(JSON.stringify(outputData));
 
@@ -361,13 +378,25 @@ function reportPageLikes(report) {
   
 }
 
-function reportPageImpressions(report) {
+function reportPageImpressions(report, type) {
   var rows = [];
   
   // Only report last number of page impressions within date range
   var row = {};
   var valueRows = report['data'][0]['values'][0];
-  row["pageImpressions"] = report['data'][0]['values'][0][valueRows.length-1]['value'];
+  
+  switch(type) {
+    case 'organic':
+      row["pageImpressionsOrganic"] = report['data'][0]['values'][0][valueRows.length-1]['value'];
+    case 'paid':
+      row["pageImpressionsPaid"] = report['data'][0]['values'][0][valueRows.length-1]['value'];
+    case 'viral':
+      row["pageImpressionsViral"] = report['data'][0]['values'][0][valueRows.length-1]['value'];
+    case 'total':
+      row["pageImpressionsTotal"] = report['data'][0]['values'][0][valueRows.length-1]['value'];
+
+  }
+  
   console.log(JSON.stringify(report.data[0]));
   rows[0] = row;
   
@@ -468,9 +497,12 @@ function reportToRows(requestedFields, report) {
   
   var postsData = reportPosts(report.posts) || [];
   var pageLikesData = reportPageLikes(report.page_likes);
-  var pageImpressionsData = reportPageImpressions(report.page_impressions);
+  var pageImpressionsData = reportPageImpressions(report.page_impressions, 'total');
+  var pageImpressionsOrganicData = reportPageImpressions(report.page_impressions_organic, 'organic');
+  var pageImpressionsPaidData = reportPageImpressions(report.page_impressions_paid, 'paid');
+  var pageImpressionsViralData = reportPageImpressions(report.page_impressions_viral, 'viral');
   
-  var data = [].concat(postsData, pageLikesData, pageImpressionsData);
+  var data = [].concat(postsData, pageLikesData, pageImpressionsData, pageImpressionsOrganicData, pageImpressionsPaidData, pageImpressionsViralData);
   
   
   //var pageFansGenderData = reportGenderAge(report.page_fans_gender_age, 'gender');
@@ -509,7 +541,17 @@ function reportToRows(requestedFields, report) {
       
       // Assign likes data values to rows
       if (field.getId().indexOf('pageImpressions') > -1) {
-        return row.push(data[i]["pageImpressions"]);
+         switch (field.getId()) {
+           case 'pageImpressionsOrganic':
+             return row.push(data[i]["pageImpressionsOrganic"]);
+           case 'pageImpressionsPaid':
+             return row.push(data[i]["pageImpressionsPaid"]);
+           case 'pageImpressionsViral':
+             return row.push(data[i]["pageImpressionsViral"]);
+           case 'pageImpressionsTotal':
+             return row.push(data[i]["pageImpressionsTotal"]);
+
+         }
       }
       
       /*// Assign gender data and pageLikes values to rows

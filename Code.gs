@@ -101,6 +101,12 @@ function getFields() {
       .setName('Viral Impressions')
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
+  
+   fields.newMetric()
+      .setId('pageConsumptions')
+      .setName('Content Clicks')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
     
   return fields;
 }
@@ -286,7 +292,9 @@ function getData(request) {
   var pageImpressionsData = graphData(request, "insights/page_impressions/day?fields=values");
   var pageImpressionsOrganicData = graphData(request, "insights/page_impressions_organic/day?fields=values");
   var pageImpressionsPaidData = graphData(request, "insights/page_impressions_paid/day?fields=values");
-   var pageImpressionsViralData = graphData(request, "insights/page_impressions_viral/day?fields=values");
+  var pageImpressionsViralData = graphData(request, "insights/page_impressions_viral/day?fields=values");
+  
+  var pageConsumptionsData = graphData(request, "insights/page_consumptions/day?fields=values");
   //var pageFansGenderAgeData = graphData(request, "insights/page_fans_gender_age?fields=values");
     
   var outputData = {};
@@ -296,6 +304,8 @@ function getData(request) {
   outputData.page_impressions_organic = pageImpressionsOrganicData;
   outputData.page_impressions_paid = pageImpressionsPaidData;
   outputData.page_impressions_viral = pageImpressionsViralData;
+  
+  outputData.page_consumptions = pageConsumptionsData;
   
   console.log(JSON.stringify(outputData));
 
@@ -378,27 +388,55 @@ function reportPageLikes(report) {
   
 }
 
+function reportPageConsumptions(report) {
+  var rows = [];
+  
+  var valueRows = report['data'][0]['values'][0];
+  
+  // Loop impressions
+  for (var i = 0; i < valueRows.length; i++) {
+    var row = {};
+    
+    row["pageConsumptions"] = report['data'][0]['values'][0][i]['value'];
+    
+    // Assign all consumptions data to rows list
+    rows.push(row);
+  }
+  
+  console.log(rows);
+  
+  return rows;
+  
+}
+
+
+
+
 function reportPageImpressions(report, type) {
   var rows = [];
   
-  // Only report last number of page impressions within date range
-  var row = {};
   var valueRows = report['data'][0]['values'][0];
   
-  switch(type) {
+  // Loop impressions
+  for (var i = 0; i < valueRows.length; i++) {
+    var row = {};
+    
+    switch(type) {
     case 'organic':
-      row["pageImpressionsOrganic"] = report['data'][0]['values'][0][valueRows.length-1]['value'];
+      row["pageImpressionsOrganic"] = report['data'][0]['values'][0][i]['value'];
     case 'paid':
-      row["pageImpressionsPaid"] = report['data'][0]['values'][0][valueRows.length-1]['value'];
+      row["pageImpressionsPaid"] = report['data'][0]['values'][0][i]['value'];
     case 'viral':
-      row["pageImpressionsViral"] = report['data'][0]['values'][0][valueRows.length-1]['value'];
+      row["pageImpressionsViral"] = report['data'][0]['values'][0][i]['value'];
     case 'total':
-      row["pageImpressionsTotal"] = report['data'][0]['values'][0][valueRows.length-1]['value'];
-
+      row["pageImpressionsTotal"] = report['data'][0]['values'][0][i]['value'];
+    }
+    
+    // Assign all impressions data to rows list
+    rows.push(row);
   }
   
-  console.log(JSON.stringify(report.data[0]));
-  rows[0] = row;
+  console.log(rows);
   
   return rows;
   
@@ -502,7 +540,9 @@ function reportToRows(requestedFields, report) {
   var pageImpressionsPaidData = reportPageImpressions(report.page_impressions_paid, 'paid');
   var pageImpressionsViralData = reportPageImpressions(report.page_impressions_viral, 'viral');
   
-  var data = [].concat(postsData, pageLikesData, pageImpressionsData, pageImpressionsOrganicData, pageImpressionsPaidData, pageImpressionsViralData);
+  var pageConsumptionsData = reportPageConsumptions(report.page_consumptions);
+  
+  var data = [].concat(postsData, pageLikesData, pageImpressionsData, pageImpressionsOrganicData, pageImpressionsPaidData, pageImpressionsViralData, pageConsumptionsData);
   
   
   //var pageFansGenderData = reportGenderAge(report.page_fans_gender_age, 'gender');
@@ -539,6 +579,11 @@ function reportToRows(requestedFields, report) {
         return row.push(data[i]["pageLikes"]);
       }
       
+      // Assign content clicks data values to rows
+      if (field.getId().indexOf('pageConsumptions') > -1) {
+        return row.push(data[i]["pageConsumptions"]);
+      }
+      
       // Assign likes data values to rows
       if (field.getId().indexOf('pageImpressions') > -1) {
          switch (field.getId()) {
@@ -550,7 +595,7 @@ function reportToRows(requestedFields, report) {
              return row.push(data[i]["pageImpressionsViral"]);
            case 'pageImpressionsTotal':
              return row.push(data[i]["pageImpressionsTotal"]);
-
+             break;
          }
       }
       

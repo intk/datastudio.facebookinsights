@@ -31,8 +31,8 @@ function getFields() {
   var aggregations = cc.AggregationType;  
   
   fields.newMetric()
-      .setId('pageLikes')
-      .setName('Total Likes')
+      .setId('pageFans')
+      .setName('Total Fans')
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
   
@@ -59,6 +59,19 @@ function getFields() {
       .setName('Viral Impressions')
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
+  
+   fields.newDimension()
+      .setId('pageFansAge')
+      .setName('Age')
+      .setType(types.TEXT);
+  
+   fields.newMetric()
+      .setId('pageFansAgeNumber')
+      .setName('Fans per Age')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
+  
     
   return fields;
 }
@@ -81,8 +94,8 @@ function getData(request) {
   // Perform data request per field
   request.fields.forEach(function(field) {
     
-    if (field.name == 'pageLikes') {
-      outputData.page_likes = graphData(request, "insights/page_fans?fields=values");
+    if (field.name == 'pageFans') {
+      outputData.page_fans = graphData(request, "insights/page_fans?fields=values");
     }
     if (field.name == 'pageImpressionsTotal') {
       outputData.page_impressions_total = graphData(request, "insights/page_impressions/day?fields=values");
@@ -95,6 +108,9 @@ function getData(request) {
     }
     if (field.name == 'pageImpressionsViral') {
       outputData.page_impressions_viral = graphData(request, "insights/page_impressions_viral/day?fields=values");
+    }
+    if (field.name == 'pageFansAge' || field.name == 'pageFansGender') {
+      outputData.page_fans_gender_age = graphData(request, "insights/page_fans_gender_age?fields=values");
     }
   });
   
@@ -117,13 +133,13 @@ function getData(request) {
   return result;  
 }
 
-function reportPageLikes(report) {
+function reportPageFans(report) {
   var rows = [];
     
   // Only report last number of page likes within date range
   var row = {};
   var valueRows = report['data'][0]['values'][0];
-  row["pageLikes"] = report['data'][0]['values'][0][valueRows.length-1]['value'];
+  row["pageFans"] = report['data'][0]['values'][0][valueRows.length-1]['value'];
   rows[0] = row;
   
   return rows;
@@ -149,12 +165,99 @@ function reportDaily(report, type) {
   return rows;
 }
 
+function reportGenderAge(report, field) {
+  var rows = [];
+  //Define fans per gender (female, male, unknown)
+  var fans = {};
+  fans['Female'] = 0;
+  fans['Male'] = 0;
+  fans['Unknown'] = 0;
+  
+  // Define fans per age
+  fans['13-17'] = 0;
+  fans['18-24'] = 0;
+  fans['25-34'] = 0;
+  fans['35-44'] = 0;
+  fans['45-54'] = 0;
+  fans['55-64'] = 0;
+  fans['65+'] = 0;
+  
+  // Only report last number of fans per gender/age within date range
+  // Get gender/age objects
+  var results = report.data[0].values[0][report.data[0].values[0].length-1]['value'];
+  
+  // Loop all objects
+  for (var property in results) {
+    if (results.hasOwnProperty(property)) {
+      
+      // Assign values to gender
+      switch (true) {
+        case (property.indexOf('F') > -1):
+        fans['Female'] += results[property];
+        break;
+        case (property.indexOf('M') > -1):
+        fans['Male'] += results[property];
+        break;
+        case (property.indexOf('U') > -1):
+        fans['Unknown'] += results[property];
+        break;
+      }
+      
+      // Assign values to age
+      switch (true) {
+        case (property.indexOf('13-17') > -1):
+          fans['13-17'] += results[property];
+          break;
+        case (property.indexOf('18-24') > -1):
+          fans['18-24'] += results[property];
+          break;
+        case (property.indexOf('25-34') > -1):
+          fans['25-34'] += results[property];
+          break;
+        case (property.indexOf('35-44') > -1):
+          fans['35-44'] += results[property];
+          break;
+        case (property.indexOf('45-54') > -1):
+          fans['45-54'] += results[property];
+          break;
+        case (property.indexOf('55-64') > -1):
+          fans['55-64'] += results[property];
+          break;
+        case (property.indexOf('65+') > -1):
+          fans['65+'] += results[property];
+          break;
+      }
+      
+    }
+  }
+  
+  for (var property in fans) {
+    var row = {};
+    if (fans.hasOwnProperty(property)) {
+      if (property.indexOf('Female') > -1 || property.indexOf('Male') > -1 || property.indexOf('Unknown') > -1) {
+        /*
+        row['pageFansGender'] = property;
+        row['pageFansGenderLikes'] = fans[property];
+        */
+      } else { 
+        row['pageFansAge'] = property;
+        row['pageFansAgeNumber'] = fans[property];
+      }
+    }
+    rows.push(row);
+     
+   }
+  
+  return rows;
+  
+}
+
 function reportToRows(requestedFields, report) {
   var rows = [];
   var data = [];  
   
-  if (typeof report.page_likes !== 'undefined') {
-    data = data.concat(reportPageLikes(report.page_likes));
+  if (typeof report.page_fans !== 'undefined') {
+    data = data.concat(reportPageFans(report.page_fans));
   }
   if (typeof report.page_impressions_total !== 'undefined') {
     data = reportDaily(report.page_impressions_total, 'pageImpressionsTotal');
@@ -167,7 +270,11 @@ function reportToRows(requestedFields, report) {
   }  
   if (typeof report.page_impressions_viral !== 'undefined') {
     data = reportDaily(report.page_impressions_viral, 'pageImpressionsViral');
+  }
+  if (typeof report.page_fans_gender_age !== 'undefined') {
+    data = reportGenderAge(report.page_fans_gender_age, 'age');
   }  
+  
     
   // Merge data
   for(var i = 0; i < data.length; i++) {
@@ -175,8 +282,8 @@ function reportToRows(requestedFields, report) {
     requestedFields.asArray().forEach(function (field) {
   
          switch (field.getId()) {
-           case 'pageLikes':
-              return row.push(data[i]["pageLikes"]);
+           case 'pageFans':
+              return row.push(data[i]["pageFans"]);
            case 'pageImpressionsOrganic':
              return row.push(data[i]["pageImpressionsOrganic"]);
            case 'pageImpressionsPaid':
@@ -185,7 +292,10 @@ function reportToRows(requestedFields, report) {
              return row.push(data[i]["pageImpressionsViral"]);
            case 'pageImpressionsTotal':
              return row.push(data[i]["pageImpressionsTotal"]);
-             break;
+           case 'pageFansAge':
+             return row.push(data[i]["pageFansAge"]);
+           case 'pageFansAgeNumber':
+             return row.push(data[i]["pageFansAgeNumber"]);
          }
       
     });

@@ -71,6 +71,17 @@ function getFields() {
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
   
+  fields.newDimension()
+      .setId('pageFansGender')
+      .setName('Gender')
+      .setType(types.TEXT);
+  
+   fields.newMetric()
+      .setId('pageFansGenderNumber')
+      .setName('Fans per Gender')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
   
     
   return fields;
@@ -165,7 +176,7 @@ function reportDaily(report, type) {
   return rows;
 }
 
-function reportGenderAge(report, field) {
+function reportGenderAge(report) {
   var rows = [];
   //Define fans per gender (female, male, unknown)
   var fans = {};
@@ -185,6 +196,7 @@ function reportGenderAge(report, field) {
   // Only report last number of fans per gender/age within date range
   // Get gender/age objects
   var results = report.data[0].values[0][report.data[0].values[0].length-1]['value'];
+  console.info(results);
   
   // Loop all objects
   for (var property in results) {
@@ -235,10 +247,8 @@ function reportGenderAge(report, field) {
     var row = {};
     if (fans.hasOwnProperty(property)) {
       if (property.indexOf('Female') > -1 || property.indexOf('Male') > -1 || property.indexOf('Unknown') > -1) {
-        /*
         row['pageFansGender'] = property;
-        row['pageFansGenderLikes'] = fans[property];
-        */
+        row['pageFansGenderNumber'] = fans[property];
       } else { 
         row['pageFansAge'] = property;
         row['pageFansAgeNumber'] = fans[property];
@@ -272,7 +282,7 @@ function reportToRows(requestedFields, report) {
     data = reportDaily(report.page_impressions_viral, 'pageImpressionsViral');
   }
   if (typeof report.page_fans_gender_age !== 'undefined') {
-    data = reportGenderAge(report.page_fans_gender_age, 'age');
+    data = reportGenderAge(report.page_fans_gender_age);
   }  
   
     
@@ -296,6 +306,10 @@ function reportToRows(requestedFields, report) {
              return row.push(data[i]["pageFansAge"]);
            case 'pageFansAgeNumber':
              return row.push(data[i]["pageFansAgeNumber"]);
+           case 'pageFansGender':
+             return row.push(data[i]["pageFansGender"]);
+           case 'pageFansGenderNumber':
+             return row.push(data[i]["pageFansGenderNumber"]);
          }
       
     });

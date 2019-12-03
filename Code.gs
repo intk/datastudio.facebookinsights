@@ -49,6 +49,12 @@ function getFields() {
       .setName('Gender')
       .setType(types.TEXT);
   
+  fields.newMetric()
+      .setId('pageFansGenderLikes')
+      .setName('Likes per Gender')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
    fields.newDimension()
       .setId('pageFansAge')
       .setName('Age')
@@ -78,6 +84,17 @@ function getFields() {
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
   
+  /*fields.newDimension()
+      .setId('pageLikesAddsDate')
+      .setName('New Likes Date')
+      .setType(types.YEAR_MONTH_DAY);
+  
+  fields.newMetric()
+      .setId('pageLikesAddsNumber')
+      .setName('New Likes')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);*/
+  
   fields.newMetric()
       .setId('pageImpressionsTotal')
       .setName('Total Impressions')
@@ -105,6 +122,18 @@ function getFields() {
    fields.newMetric()
       .setId('pageConsumptions')
       .setName('Content Clicks')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
+  fields.newMetric()
+      .setId('pagePositiveFeedback')
+      .setName('Positive Actions')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
+  fields.newMetric()
+      .setId('pageNegativeFeedback')
+      .setName('Negative Actions')
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
     
@@ -144,7 +173,6 @@ function graphData(request, query) {
   // If days between startDate and endDate are more than the limit
   if (daysBetween > chunkLimit) {
     var chunksAmount = daysBetween/chunkLimit;
-     console.log("ChunksAmount: %s", chunksAmount);
         
     // Make chunks per rounded down chunksAmount
     for (var i = 0; i < Math.floor(chunksAmount); i++) {
@@ -170,7 +198,6 @@ function graphData(request, query) {
     if (chunksAmount - queryChunks.length > 0) {
       
       var leftoverDays = Math.floor((chunksAmount - queryChunks.length) * chunkLimit) // Decimal number * chunkLimit rounded down gives the amount of leftover days
-      console.log("LeftoverDays: %s", leftoverDays);
       var chunk = {};
       chunk['since'] = new Date(queryChunks[queryChunks.length-1]['until'].getTime()-(86400000*(offset-1))); // 'Until' has offset of 2 days. 'Since' should start 1 day after last date range chunk
       chunk['until'] = new Date(chunk['since'].getTime()+(86400000*(leftoverDays + offset)));
@@ -257,7 +284,7 @@ function graphData(request, query) {
       
       // Perform API Request
       var requestUrl = requestEndpoint+query+dateRange+"&access_token="+pageToken;
-            
+      
       var response = UrlFetchApp.fetch(requestUrl,
                                        {
                                          muteHttpExceptions : true
@@ -272,6 +299,8 @@ function graphData(request, query) {
       
     }
   }
+  
+  console.log(JSON.stringify(dataObj));
   
   
   return dataObj;
@@ -289,23 +318,31 @@ function getData(request) {
   
   var postData = graphData(request, "posts?time_increment=1&fields=message,story,created_time,permalink_url,likes.summary(true),comments.summary(true),shares");
   var pageLikesData = graphData(request, "insights/page_fans?fields=values");
+  var pageLikesAddsData = graphData(request, "insights/page_fan_adds?fields=values");
   var pageImpressionsData = graphData(request, "insights/page_impressions/day?fields=values");
   var pageImpressionsOrganicData = graphData(request, "insights/page_impressions_organic/day?fields=values");
   var pageImpressionsPaidData = graphData(request, "insights/page_impressions_paid/day?fields=values");
   var pageImpressionsViralData = graphData(request, "insights/page_impressions_viral/day?fields=values");
   
   var pageConsumptionsData = graphData(request, "insights/page_consumptions/day?fields=values");
-  //var pageFansGenderAgeData = graphData(request, "insights/page_fans_gender_age?fields=values");
-    
+  var pagePositiveFeedbackData = graphData(request, "insights/page_positive_feedback_by_type/day?fields=values");
+  var pageNegativeFeedbackData = graphData(request, "insights/page_negative_feedback/day?fields=values");
+  var pageFansGenderAgeData = graphData(request, "insights/page_fans_gender_age?fields=values");
+      
   var outputData = {};
   outputData.posts = postData;
   outputData.page_likes = pageLikesData;
+  outputData.page_likes_adds = pageLikesAddsData
   outputData.page_impressions = pageImpressionsData;
   outputData.page_impressions_organic = pageImpressionsOrganicData;
   outputData.page_impressions_paid = pageImpressionsPaidData;
   outputData.page_impressions_viral = pageImpressionsViralData;
   
   outputData.page_consumptions = pageConsumptionsData;
+  outputData.page_positive_feedback = pagePositiveFeedbackData;
+  outputData.page_negative_feedback = pageNegativeFeedbackData;
+  
+  outputData.page_fans_gender_age = pageFansGenderAgeData;
   
   console.log(JSON.stringify(outputData));
 
@@ -388,18 +425,55 @@ function reportPageLikes(report) {
   
 }
 
-function reportPageConsumptions(report) {
+function reportPageLikesAdds(report) {
+  var rows = [];
+    
+  // Only report last number of page likes within date range
+  var valueRows = report['data'][0]['values'][0];
+  
+  for (var i = 0; i < valueRows.length; i++) {
+    var row = {};
+    row["pageLikesAddsNumber"] = report['data'][0]['values'][0][i]['value'];
+    row["pageLikesAddsDate"] = new Date(new Date(report['data'][0]['values'][0][i]['end_time']).getTime()-86400000).toISOString().slice(0, 10);
+
+    console.log("pageLikesAddsDate %s", new Date(new Date(report['data'][0]['values'][0][i]['end_time']).getTime()-86400000).toISOString().slice(0, 10));
+    
+    // Assign all data to rows list
+    rows.push(row);
+  }
+  
+  console.log(rows);
+
+  return rows;
+  
+}
+
+// Report all daily reports to rows 
+function reportDaily(report, type) {
   var rows = [];
   
   var valueRows = report['data'][0]['values'][0];
   
-  // Loop impressions
+  // Loop report
   for (var i = 0; i < valueRows.length; i++) {
     var row = {};
     
-    row["pageConsumptions"] = report['data'][0]['values'][0][i]['value'];
+    if (type == 'pagePositiveFeedback') {
+      
+      // Check property for existance of positive feedback types
+      var types = ['answer', 'claim', 'comment', 'like', 'link', 'other', 'rsvp'];
+      
+      for (var t = 0; t < types.length; t++) {
+        if (typeof valueRows[i]['value'][types[t]] !== 'undefined') {
+          //row[type] = report['data'][0]['values'][0][i]['value'][types[t]];
+        }
+      }
+
+    } else {
+      row[type] = report['data'][0]['values'][0][i]['value'];
+    }
     
-    // Assign all consumptions data to rows list
+    // Assign all data to rows list
     rows.push(row);
   }
   
@@ -462,7 +536,7 @@ function reportGenderAge(report, field) {
   
   // Only report last number of fans per gender/age within date range
   // Get gender/age objects
-  var results = report.data[0].values[0]['value'];
+  var results = report.data[0].values[0][report.data[0].values[0].length-1]['value'];
   
   // Loop all objects
   for (var property in results) {
@@ -516,10 +590,12 @@ function reportGenderAge(report, field) {
     if (fans.hasOwnProperty(property)) {
       if (property.indexOf('Female') > -1 || property.indexOf('Male') > -1 || property.indexOf('Unknown') > -1) {
         row['pageFansGender'] = property;
-        row['pageLikes'] = fans[property];
+        row['pageFansGenderLikes'] = fans[property];
       } else { 
+        /*
         row['pageFansAge'] = property;
         row['pageLikes'] = fans[property];
+        */
       }
     }
     rows.push(row);
@@ -535,27 +611,32 @@ function reportToRows(requestedFields, report) {
   
   var postsData = reportPosts(report.posts) || [];
   var pageLikesData = reportPageLikes(report.page_likes);
+  var pageLikesAddsData = reportPageLikesAdds(report.page_likes_adds);
   var pageImpressionsData = reportPageImpressions(report.page_impressions, 'total');
   var pageImpressionsOrganicData = reportPageImpressions(report.page_impressions_organic, 'organic');
   var pageImpressionsPaidData = reportPageImpressions(report.page_impressions_paid, 'paid');
   var pageImpressionsViralData = reportPageImpressions(report.page_impressions_viral, 'viral');
   
-  var pageConsumptionsData = reportPageConsumptions(report.page_consumptions);
+  var pageConsumptionsData = reportDaily(report.page_consumptions, "pageConsumptions");
+  var pagePositiveFeedbackData = reportDaily(report.page_positive_feedback, "pagePositiveFeedback");
+  var pageNegativeFeedbackData = reportDaily(report.page_negative_feedback, "pageNegativeFeedback");
   
-  var data = [].concat(postsData, pageLikesData, pageImpressionsData, pageImpressionsOrganicData, pageImpressionsPaidData, pageImpressionsViralData, pageConsumptionsData);
+  var pageFansGenderData = reportGenderAge(report.page_fans_gender_age, 'gender');
+
   
+  var data = [].concat(postsData, pageFansGenderData, pageLikesData, pageLikesAddsData, pageImpressionsData, pageImpressionsOrganicData, pageImpressionsPaidData, pageImpressionsViralData, pageConsumptionsData, pagePositiveFeedbackData, pageNegativeFeedbackData);
+ 
   
-  //var pageFansGenderData = reportGenderAge(report.page_fans_gender_age, 'gender');
     
   // Merge data
    
   for(var i = 0; i < data.length; i++) {
     row = [];    
     requestedFields.asArray().forEach(function (field) {
-        console.log(data[i]["postDate"]);
         
       // Assign post data values to rows
       if (field.getId().indexOf('post') > -1 && typeof data[i]["postDate"] !== 'undefined') {
+        console.log("ReportToRows_Posts: %s", data[i]["postDate"]);
         switch (field.getId()) {
           case 'postDate':
             return row.push(data[i]["postDate"].replace(/-/g,''));
@@ -575,16 +656,6 @@ function reportToRows(requestedFields, report) {
       } 
       
       // Assign likes data values to rows
-      if (field.getId().indexOf('pageLikes') > -1) {
-        return row.push(data[i]["pageLikes"]);
-      }
-      
-      // Assign content clicks data values to rows
-      if (field.getId().indexOf('pageConsumptions') > -1) {
-        return row.push(data[i]["pageConsumptions"]);
-      }
-      
-      // Assign likes data values to rows
       if (field.getId().indexOf('pageImpressions') > -1) {
          switch (field.getId()) {
            case 'pageImpressionsOrganic':
@@ -599,18 +670,51 @@ function reportToRows(requestedFields, report) {
          }
       }
       
-      /*// Assign gender data and pageLikes values to rows
+      // Assign post data values to rows
+      if (field.getId().indexOf('pageLikesAdds') > -1 && typeof data[i]["pageLikesAddsDate"] !== 'undefined') {
+        console.log("ReportToRowsPageLikes: %s", JSON.stringify(data[i]));
+        
+        switch (field.getId()) {
+          case 'pageLikesAddsDate':
+            return row.push(data[i]["pageLikesAddsDate"].replace(/-/g,''));
+          case 'pageLikesAddsNumber':
+            return row.push(data[i]["pageLikesAddsNumber"]);
+            break;
+        }
+        
+      } 
+      
+      if (field.getId().indexOf('pageLikes') > -1 && typeof data[i]["pageLikesAddsDate"] === 'undefined') {
+        return row.push(data[i]["pageLikes"]);
+      }
+      
+      // Assign content clicks data values to rows
+      if (field.getId().indexOf('pageConsumptions') > -1) {
+        return row.push(data[i]["pageConsumptions"]);
+      }
+      
+      // Assign negative feedback data values to rows
+      if (field.getId().indexOf('pagePositiveFeedback') > -1) {
+        return row.push(data[i]["pagePositiveFeedback"]);
+      }
+      
+      // Assign negative feedback data values to rows
+      if (field.getId().indexOf('pageNegativeFeedback') > -1) {
+        return row.push(data[i]["pageNegativeFeedback"]);
+      }
+      
+      // Assign gender data and pageLikes values to rows
        if (field.getId().indexOf('page') > -1 && typeof data[i]["pageFansGender"] !== 'undefined') {
          switch (field.getId()) {
           case 'pageFansGender':
             return row.push(data[i]["pageFansGender"]);
-          case 'pageLikes':
-            return row.push(data[i]["pageLikes"]);
+          case 'pageFansGenderLikes':
+            return row.push(data[i]["pageFansGenderLikes"]);
          }
        }
-       */
+      /*
       
-       /*// Assign age data ans pageLikes values to rows
+       // Assign age data ans pageLikes values to rows
        else if (field.getId().indexOf('page') > -1 && typeof data[i]["pageFansAge"] !== 'undefined') {
          switch (field.getId()) {
           case 'pageFansAge':
@@ -625,7 +729,7 @@ function reportToRows(requestedFields, report) {
       rows.push({ values: row });
     }
   }
-  
+    
   return rows;
 }
 

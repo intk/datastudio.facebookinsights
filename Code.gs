@@ -47,6 +47,18 @@ function getFields() {
       .setName('Organic Impressions')
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
+  
+  fields.newMetric()
+      .setId('pageImpressionsPaid')
+      .setName('Paid Impressions')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
+  fields.newMetric()
+      .setId('pageImpressionsViral')
+      .setName('Viral Impressions')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
     
   return fields;
 }
@@ -75,11 +87,16 @@ function getData(request) {
     if (field.name == 'pageImpressionsTotal') {
       outputData.page_impressions_total = graphData(request, "insights/page_impressions/day?fields=values");
     }
+    if (field.name == 'pageImpressionsOrganic') {
+      outputData.page_impressions_organic = graphData(request, "insights/page_impressions_organic/day?fields=values");
+    }
+    if (field.name == 'pageImpressionsPaid') {
+      outputData.page_impressions_paid = graphData(request, "insights/page_impressions_paid/day?fields=values");
+    }
+    if (field.name == 'pageImpressionsViral') {
+      outputData.page_impressions_viral = graphData(request, "insights/page_impressions_viral/day?fields=values");
+    }
   });
-
-
-
-
   
   var requestedFields = getFields().forIds(requestedFieldIds);
   
@@ -141,6 +158,15 @@ function reportToRows(requestedFields, report) {
   }
   if (typeof report.page_impressions_total !== 'undefined') {
     data = reportDaily(report.page_impressions_total, 'pageImpressionsTotal');
+  }  
+  if (typeof report.page_impressions_organic !== 'undefined') {
+    data = reportDaily(report.page_impressions_organic, 'pageImpressionsOrganic');
+  }
+  if (typeof report.page_impressions_paid !== 'undefined') {
+    data = reportDaily(report.page_impressions_paid, 'pageImpressionsPaid');
+  }  
+  if (typeof report.page_impressions_viral !== 'undefined') {
+    data = reportDaily(report.page_impressions_viral, 'pageImpressionsViral');
   }  
     
   // Merge data

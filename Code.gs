@@ -258,6 +258,8 @@ function reportGenderAge(report) {
      
    }
   
+  console.log(rows);
+  
   return rows;
   
 }
@@ -303,13 +305,21 @@ function reportToRows(requestedFields, report) {
            case 'pageImpressionsTotal':
              return row.push(data[i]["pageImpressionsTotal"]);
            case 'pageFansAge':
-             return row.push(data[i]["pageFansAge"]);
+              if (typeof data[i]["pageFansAge"] !== 'undefined') {
+                return row.push(data[i]["pageFansAge"]);
+              }
            case 'pageFansAgeNumber':
-             return row.push(data[i]["pageFansAgeNumber"]);
+             if (typeof data[i]["pageFansAgeNumber"] !== 'undefined') {
+               return row.push(data[i]["pageFansAgeNumber"]);
+             }
            case 'pageFansGender':
-             return row.push(data[i]["pageFansGender"]);
+             if (typeof data[i]["pageFansGender"] !== 'undefined') {
+               return row.push(data[i]["pageFansGender"]);
+             }
            case 'pageFansGenderNumber':
-             return row.push(data[i]["pageFansGenderNumber"]);
+             if (typeof data[i]["pageFansGenderNumber"] !== 'undefined') {
+               return row.push(data[i]["pageFansGenderNumber"]);
+             }
          }
       
     });

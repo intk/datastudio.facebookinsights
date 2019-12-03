@@ -19,6 +19,12 @@ function getConfig() {
   return config.build();
 }
 
+  /*
+  ------------------------------------------------------
+  DataStudio fields
+  ------------------------------------------------------
+  */
+
 function getFields() {
   var fields = cc.getFields();
   var types = cc.FieldType;
@@ -27,6 +33,12 @@ function getFields() {
   fields.newMetric()
       .setId('pageLikes')
       .setName('Total Likes')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
+  fields.newMetric()
+      .setId('pageImpressionsTotal')
+      .setName('Total Impressions')
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
     
@@ -215,6 +227,9 @@ function getData(request) {
     if (field.name == 'pageLikes') {
       outputData.page_likes = graphData(request, "insights/page_fans?fields=values");
     }
+    if (field.name == 'pageImpressionsTotal') {
+      outputData.page_impressions_total = graphData(request, "insights/page_impressions/day?fields=values");
+    }
   });
 
 
@@ -253,21 +268,54 @@ function reportPageLikes(report) {
   
 }
 
+// Report all daily reports to rows 
+function reportDaily(report, type) {
+  var rows = [];
+  
+  var valueRows = report['data'][0]['values'][0];
+  
+  // Loop report
+  for (var i = 0; i < valueRows.length; i++) {
+    var row = {};
+    
+    row[type] = report['data'][0]['values'][0][i]['value'];
+    
+    // Assign all data to rows list
+    rows.push(row);
+  }
+  
+  return rows;
+}
+
 function reportToRows(requestedFields, report) {
-  var rows = [];  
+  var rows = [];
+  var data = [];  
   
-  var pageLikesData = reportPageLikes(report.page_likes);
-  
-  var data = [].concat(pageLikesData);
+  if (typeof report.page_likes !== 'undefined') {
+    data = data.concat(reportPageLikes(report.page_likes));
+  }
+  if (typeof report.page_impressions_total !== 'undefined') {
+    data = reportDaily(report.page_impressions_total, 'pageImpressionsTotal');
+  }  
     
   // Merge data
   for(var i = 0; i < data.length; i++) {
     row = [];    
     requestedFields.asArray().forEach(function (field) {
-      
-      if (field.getId().indexOf('pageLikes') > -1 && typeof data[i]["pageLikesAddsDate"] === 'undefined') {
-        return row.push(data[i]["pageLikes"]);
-      }
+  
+         switch (field.getId()) {
+           case 'pageLikes':
+              return row.push(data[i]["pageLikes"]);
+           case 'pageImpressionsOrganic':
+             return row.push(data[i]["pageImpressionsOrganic"]);
+           case 'pageImpressionsPaid':
+             return row.push(data[i]["pageImpressionsPaid"]);
+           case 'pageImpressionsViral':
+             return row.push(data[i]["pageImpressionsViral"]);
+           case 'pageImpressionsTotal':
+             return row.push(data[i]["pageImpressionsTotal"]);
+             break;
+         }
       
     });
     if (row.length > 0) {

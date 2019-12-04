@@ -99,6 +99,12 @@ function getFields() {
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
   
+  fields.newMetric()
+      .setId('pagePositiveFeedback')
+      .setName('Positive Actions')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
   
     
   return fields;
@@ -145,6 +151,9 @@ function getData(request) {
     }
     if (field.name == 'pageConsumptions') {
       outputData.page_consumptions = graphData(request, "insights/page_consumptions/day?fields=values");
+    }
+    if (field.name == 'pagePositiveFeedback') {
+      outputData.page_positive_feedback = graphData(request, "insights/page_positive_feedback_by_type/day?fields=values");
     }
   });
   
@@ -311,6 +320,35 @@ function reportPageFansAdds(report) {
   
 }
 
+// Report positive feedback to rows
+function reportPositiveFeedback(report, type) {
+  var rows = [];
+  
+  var valueRows = report['data'][0]['values'][0];
+  
+  // Loop report
+  for (var i = 0; i < valueRows.length; i++) {
+    var row = {};
+    var count = 0;
+    
+     // Determine if field exists. Count amount of positive actions
+    var feedbackTypes = ['answer', 'claim', 'comment', 'like', 'link', 'other', 'rsvp'];
+
+    for (var property in feedbackTypes) {
+       if (typeof report['data'][0]['values'][0][i]['value'][feedbackTypes[property]] !== 'undefined') {
+         count += report['data'][0]['values'][0][i]['value'][feedbackTypes[property]];
+       }
+    }
+   
+    row[type] = count;
+    
+    // Assign all data to rows list
+    rows.push(row);
+  }
+  
+  return rows;
+}
+
 function reportToRows(requestedFields, report) {
   var rows = [];
   var data = [];  
@@ -339,6 +377,9 @@ function reportToRows(requestedFields, report) {
   if (typeof report.page_consumptions !== 'undefined') {
     data = reportDaily(report.page_consumptions, 'pageConsumptions');
   }  
+  if (typeof report.page_positive_feedback !== 'undefined') {
+    data = reportPositiveFeedback(report.page_positive_feedback, 'pagePositiveFeedback');
+  } 
   
     
   // Merge data
@@ -361,6 +402,10 @@ function reportToRows(requestedFields, report) {
              return row.push(data[i]["pageImpressionsViral"]);
            case 'pageImpressionsTotal':
              return row.push(data[i]["pageImpressionsTotal"]);
+           case 'pageConsumptions':
+               return row.push(data[i]["pageConsumptions"]);
+           case 'pagePositiveFeedback':
+               return row.push(data[i]["pagePositiveFeedback"]);
            case 'pageFansAge':
                 return row.push(data[i]["pageFansAge"]);
            case 'pageFansAgeNumber':
@@ -373,8 +418,7 @@ function reportToRows(requestedFields, report) {
              if (typeof data[i]["pageFansGenderNumber"] !== 'undefined') {
                return row.push(data[i]["pageFansGenderNumber"]);
              }
-           case 'pageConsumptions':
-               return row.push(data[i]["pageConsumptions"]);
+
            
          }
       

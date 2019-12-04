@@ -105,6 +105,12 @@ function getFields() {
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
   
+  fields.newMetric()
+      .setId('pageNegativeFeedback')
+      .setName('Negative Actions')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
   
     
   return fields;
@@ -154,6 +160,9 @@ function getData(request) {
     }
     if (field.name == 'pagePositiveFeedback') {
       outputData.page_positive_feedback = graphData(request, "insights/page_positive_feedback_by_type/day?fields=values");
+    }
+    if (field.name == 'pageNegativeFeedback') {
+      outputData.page_negative_feedback = graphData(request, "insights/page_negative_feedback/day?fields=values");
     }
   });
   
@@ -296,6 +305,21 @@ function reportGenderAge(report) {
   
 }
 
+//Format date object to YYMMDD
+function formatDate(date) {
+    var d = new Date(date),
+        month = '' + (d.getMonth() + 1),
+        day = '' + d.getDate(),
+        year = d.getFullYear();
+
+    if (month.length < 2) 
+        month = '0' + month;
+    if (day.length < 2) 
+        day = '0' + day;
+
+    return [year, month, day].join('');
+}
+
 function reportPageFansAdds(report) {
   var rows = [];
     
@@ -306,7 +330,7 @@ function reportPageFansAdds(report) {
     var row = {};
     row["pageFansAdds"] = report['data'][0]['values'][0][i]['value'];
     // Data is reported one day before. end_time minus 1 day in milliseconds brings the right date
-    row["pageFansAddsDate"] = new Date(new Date(report['data'][0]['values'][0][i]['end_time']).getTime()-86400000).toISOString().slice(0, 10);
+    row["pageFansAddsDate"] = formatDate(new Date(new Date(report['data'][0]['values'][0][i]['end_time']).getTime()-86400000));
 
     console.log("pageFansAddsDate %s", new Date(new Date(report['data'][0]['values'][0][i]['end_time']).getTime()-86400000).toISOString().slice(0, 10));
     
@@ -379,6 +403,9 @@ function reportToRows(requestedFields, report) {
   }  
   if (typeof report.page_positive_feedback !== 'undefined') {
     data = reportPositiveFeedback(report.page_positive_feedback, 'pagePositiveFeedback');
+  }
+  if (typeof report.page_negative_feedback !== 'undefined') {
+    data = reportDaily(report.page_negative_feedback, 'pageNegativeFeedback');
   } 
   
     
@@ -406,6 +433,8 @@ function reportToRows(requestedFields, report) {
                return row.push(data[i]["pageConsumptions"]);
            case 'pagePositiveFeedback':
                return row.push(data[i]["pagePositiveFeedback"]);
+           case 'pageNegativeFeedback':
+               return row.push(data[i]["pageNegativeFeedback"]);
            case 'pageFansAge':
                 return row.push(data[i]["pageFansAge"]);
            case 'pageFansAgeNumber':

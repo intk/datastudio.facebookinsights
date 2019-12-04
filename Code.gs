@@ -93,6 +93,12 @@ function getFields() {
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
   
+   fields.newMetric()
+      .setId('pageConsumptions')
+      .setName('Content Clicks')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
   
     
   return fields;
@@ -136,6 +142,9 @@ function getData(request) {
     }
     if (field.name == 'pageFansAdds' || field.name == 'pageFansAddsDate') {
       outputData.page_fans_adds = graphData(request, "insights/page_fan_adds?fields=values");
+    }
+    if (field.name == 'pageConsumptions') {
+      outputData.page_consumptions = graphData(request, "insights/page_consumptions/day?fields=values");
     }
   });
   
@@ -326,6 +335,9 @@ function reportToRows(requestedFields, report) {
   }
   if (typeof report.page_fans_adds !== 'undefined') {
     data = reportPageFansAdds(report.page_fans_adds);
+  }
+  if (typeof report.page_consumptions !== 'undefined') {
+    data = reportDaily(report.page_consumptions, 'pageConsumptions');
   }  
   
     
@@ -361,6 +373,9 @@ function reportToRows(requestedFields, report) {
              if (typeof data[i]["pageFansGenderNumber"] !== 'undefined') {
                return row.push(data[i]["pageFansGenderNumber"]);
              }
+           case 'pageConsumptions':
+               return row.push(data[i]["pageConsumptions"]);
+           
          }
       
     });

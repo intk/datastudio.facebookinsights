@@ -255,6 +255,9 @@ function reportPosts(report) {
     }
     
     row["postComments"] = 0;
+    if (typeof report.data[i]['comments'] !== 'undefined') {
+      row["postComments"] = report.data[i]['comments']['summary']['total_count'];
+    }
     
     row["postShares"] = 0;
     // Determine if shares object exist
@@ -491,7 +494,7 @@ function reportToRows(requestedFields, report) {
     data = reportDaily(report.page_negative_feedback, 'pageNegativeFeedback');
   } 
   if (typeof report.posts !== 'undefined') {
-    data = reportPosts(report.posts) || [];
+    data = reportPosts(report.posts) || ['NO-DATA'];
   } 
   
     

@@ -177,6 +177,9 @@ function getData(request) {
     
     var rows = [];
     
+    // Try to re-assign data when it fails at first attempt, until rows are filled in
+    while (rows.length < 1) {
+    
     if (field.name == 'pageFans') {
       outputData.page_fans = graphData(request, "insights/page_fans?fields=values");
     }
@@ -211,20 +214,23 @@ function getData(request) {
       outputData.posts = graphData(request, "posts?time_increment=1&fields=message,story,created_time,permalink_url,likes.summary(true),comments.summary(true),shares");
     }
     
-    // Try to re-assign data when it fails at first attempt
-    while (rows.length < 1) {
-      if (typeof outputData !== 'undefined') {    
-        rows = reportToRows(requestedFields, outputData);
+    if (typeof outputData !== 'undefined') {    
+       rows = reportToRows(requestedFields, outputData);
         // TODO: parseData.paging.next != undefined
-      } else {
-        rows = [];
-      }
+    } else {
+       rows = [];
     }
-    
-    result = {
-      schema: requestedFields.build(),
-      rows: rows
-    };  
+     // Only break attempt to re-assign data if there is no data at all
+     if (rows[0] == 'no-data') {
+       rows = [];
+       break;
+    }
+      
+      result = {
+        schema: requestedFields.build(),
+        rows: rows
+      };  
+    }
   });
   
   //cache.put(request_hash, JSON.stringify(result));
@@ -494,8 +500,14 @@ function reportToRows(requestedFields, report) {
     data = reportDaily(report.page_negative_feedback, 'pageNegativeFeedback');
   } 
   if (typeof report.posts !== 'undefined') {
-    data = reportPosts(report.posts) || ['NO-DATA'];
+    data = reportPosts(report.posts) || [];
   } 
+  
+  //If data doesn't contain any values
+  if (data.length < 1) {
+    return ['no-data'];
+  } else {
+    
   
     
   // Merge data
@@ -568,6 +580,8 @@ function reportToRows(requestedFields, report) {
   }
     
   return rows;
+    
+  }
 }
 
 

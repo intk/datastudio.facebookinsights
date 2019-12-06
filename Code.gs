@@ -28,7 +28,12 @@ function getConfig() {
 function getFields() {
   var fields = cc.getFields();
   var types = cc.FieldType;
-  var aggregations = cc.AggregationType;  
+  var aggregations = cc.AggregationType; 
+  
+  fields.newDimension()
+      .setId('pageName')
+      .setName('Page Name')
+      .setType(types.TEXT);
   
   fields.newMetric()
       .setId('pageFans')
@@ -179,7 +184,9 @@ function getData(request) {
     
     // Try to re-assign data when it fails at first attempt, until rows are filled in
     while (rows.length < 1) {
-    
+    if (field.name == 'pageName') {
+      outputData.page_name = graphData(request, "?fields=id,name");
+    }
     if (field.name == 'pageFans') {
       outputData.page_fans = graphData(request, "insights/page_fans?fields=values");
     }
@@ -235,6 +242,17 @@ function getData(request) {
   
   //cache.put(request_hash, JSON.stringify(result));
   return result;  
+}
+
+// Report page name
+function reportPageName(report) {
+  var rows = [];
+    
+  var row = {};
+  row["pageName"] = report['name'];
+  rows[0] = row;
+  
+  return rows;
 }
 
 // Report posts data
@@ -391,7 +409,7 @@ function reportGenderAge(report) {
      
    }
   
-  console.log(rows);
+ // console.log(rows);
   
   return rows;
   
@@ -424,13 +442,13 @@ function reportPageFansAdds(report) {
     // Data is reported one day before. end_time minus 1 day in milliseconds brings the right date
     row["pageFansAddsDate"] = formatDate(new Date(new Date(report['data'][0]['values'][0][i]['end_time']).getTime()-86400000));
 
-    console.log("pageFansAddsDate %s", new Date(new Date(report['data'][0]['values'][0][i]['end_time']).getTime()-86400000).toISOString().slice(0, 10));
+    //console.log("pageFansAddsDate %s", new Date(new Date(report['data'][0]['values'][0][i]['end_time']).getTime()-86400000).toISOString().slice(0, 10));
     
     // Assign all data to rows list
     rows.push(row);
   }
   
-  console.log(rows);
+ // console.log(rows);
 
   return rows;
   
@@ -469,6 +487,9 @@ function reportToRows(requestedFields, report) {
   var rows = [];
   var data = [];  
   
+  if (typeof report.page_name !== 'undefined') {
+    data = reportPageName(report.page_name);
+  }
   if (typeof report.page_fans !== 'undefined') {
     data = data.concat(reportPageFans(report.page_fans));
   }
@@ -517,7 +538,7 @@ function reportToRows(requestedFields, report) {
       
       // Assign post data values to rows
       if (field.getId().indexOf('post') > -1 && typeof data[i]["postDate"] !== 'undefined') {
-        console.log("ReportToRows_Posts: %s", data[i]["postDate"]);
+        //console.log("ReportToRows_Posts: %s", data[i]["postDate"]);
         switch (field.getId()) {
           case 'postDate':
             return row.push(data[i]["postDate"].replace(/-/g,''));
@@ -537,6 +558,8 @@ function reportToRows(requestedFields, report) {
       } else {
   
          switch (field.getId()) {
+           case 'pageName':
+              return row.push(data[i]["pageName"]);
            case 'pageFans':
               return row.push(data[i]["pageFans"]);
            case 'pageFansAdds':

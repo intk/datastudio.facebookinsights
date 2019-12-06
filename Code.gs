@@ -136,6 +136,12 @@ function getFields() {
       .setName('Link to post')
       .setType(types.URL);
   
+  fields.newDimension()
+       .setId('postMessageHyperLink')
+       .setName('Post Message Link')
+       .setType(types.HYPERLINK)
+       .setFormula('HYPERLINK($postLink,$postMessage)');
+  
   fields.newMetric()
       .setId('postLikes')
       .setName('Likes on post')
@@ -271,6 +277,7 @@ function reportPosts(report) {
     
     row["postMessage"] = report.data[i]['message'] || report.data[i]['story'];
     row["postLink"] = report.data[i]['permalink_url'];
+    
     row["postLikes"] = 0;
     
     // Determine if likes object exist

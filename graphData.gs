@@ -17,7 +17,7 @@ function graphData(request, query) {
   var chunkLimit = 93 - offset; // Limit of 93 days of data per query
   var daysBetween = (endDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24); // Calculate time difference in milliseconds. Then divide it with milliseconds per day 
   
-  console.log("query: %s, startDate: %s, endDate: %s, daysBetween: %s", query, startDate, endDate, daysBetween);
+  //console.log("query: %s, startDate: %s, endDate: %s, daysBetween: %s", query, startDate, endDate, daysBetween);
     
   // Split date range into chunks
   var queryChunks = [];
@@ -66,10 +66,10 @@ function graphData(request, query) {
       chunk['since'] = startDate;
       chunk['until'] = new Date(endDate.getTime()+(86400000*offset)); //endDate + until offset in milliseconds
     
-    // If until is after today, make sure the until date is today
-    if (chunk['until'].getTime() > new Date().getTime()) {
-       chunk['until'] = new Date(endDate.getTime()+(86400000*offset-1)); //endDate + until offset in milliseconds
-    }
+    // When date range is 'yesterday', make sure the until date is today
+    /*if (endDate == startDate) {
+       chunk['until'] = new Date(endDate.getTime()+(86400000*offset)-1); //endDate + until offset in milliseconds
+    }*/
     
       // Add chunk to queryChunks list
       queryChunks.push(chunk);
@@ -82,8 +82,8 @@ function graphData(request, query) {
   */
   
   
-  /*
-  //Get page access token
+  
+  /*//Get page access token
   var tokenUrl = requestEndpoint+"?fields=access_token";
   var tokenResponse = UrlFetchApp.fetch(tokenUrl,
       {
@@ -93,16 +93,32 @@ function graphData(request, query) {
   var pageToken = JSON.parse(tokenResponse).access_token;
   */
   
+  
   //Use pageToken for testing purposes
   var pageToken = PAGE_TOKEN;
   
   // Define data object to push the graph data to
   var dataObj = {};
+ // console.log(queryChunks);
   
-  
+  // If page name, id
+  if (query.indexOf('?fields=id,name') > -1) {
+        
+    // Perform API Request
+    var requestUrl = requestEndpoint+query+"&access_token="+pageToken;
+    
+    //console.log(requestUrl);
+    
+    var response = UrlFetchApp.fetch(requestUrl,
+      {
+        muteHttpExceptions : true
+      });
+    
+    dataObj = JSON.parse(response);
+  }
+
   // If posts object
-  
-  if (query.indexOf('posts') > -1) {
+  else if (query.indexOf('posts') > -1) {
     // Set date range parameters
     var dateRangeSince = queryChunks[0]['since'].toISOString().slice(0, 10);
     var dateRangeUntil = queryChunks[queryChunks.length-1]['until'].toISOString().slice(0, 10);
@@ -112,7 +128,7 @@ function graphData(request, query) {
     // Perform API Request
     var requestUrl = requestEndpoint+query+dateRange+"&access_token="+pageToken;
     
-    console.log(requestUrl);
+    //console.log(requestUrl);
     
     var response = UrlFetchApp.fetch(requestUrl,
       {
@@ -120,14 +136,23 @@ function graphData(request, query) {
       });
     
     dataObj = JSON.parse(response);
-    
+        
     
   // All other objects  
   } else {
-  
-    dataObj['data'] = [];
-    dataObj['data'][0] = {};
-    dataObj['data'][0]['values'] = [];
+    
+    
+    // Define properties
+    dataObj = {'page_fans':[], 
+               'page_impressions':[], 
+               'page_impressions_organic':[], 
+               'page_impressions_paid':[], 
+               'page_impressions_viral':[], 
+               'page_fans_gender_age':[], 
+               'page_fan_adds':[], 
+               'page_consumptions':[], 
+               'page_positive_feedback_by_type':[], 
+               'page_negative_feedback':[]};
     
     // Loop queryChunks
     for(var i = 0; i < queryChunks.length; i++) {
@@ -139,27 +164,45 @@ function graphData(request, query) {
       
       var dateRange = "&since="+dateRangeSince+"&until="+dateRangeUntil;
       
+      
+      
       // Perform API Request
       var requestUrl = requestEndpoint+query+dateRange+"&access_token="+pageToken;
       
-      console.log(requestUrl);
+      //console.log(requestUrl);
             
       var response = UrlFetchApp.fetch(requestUrl,
                                        {
                                          muteHttpExceptions : true
                                        });
       
-      var parseData = JSON.parse(response);      
+      var parseData = JSON.parse(response);       
             
-      // Merge data object with values from response
-      if (parseData['data'].length > 0) {
-          dataObj['data'][0]['values'].push(parseData['data'][0]['values']);
-      }
+      // Loop 'data' object from response
+       if (parseData['data'].length > 0) {
+          for(var d = 0; d < parseData['data'].length; d++) {
+
+            for (var property in dataObj) {
+                            
+              // Determine if property exists in data object
+              if (parseData['data'][d]['name'] == property) {
+                
+                 console.log("PROPERTY FOUND: %s", property);
+                
+                // Push values to right property
+                dataObj[property].push(parseData['data'][d]['values']);
+              }
+              
+            }
+            
+          }
+        
+       }
       
     }
   }
   
-  console.log(JSON.stringify(dataObj));
+  //console.log(JSON.stringify(dataObj));
   
   
   return dataObj;

@@ -172,16 +172,19 @@ function getSchema(request) {
     return { 'schema': fields };    
 }
 
-function getData(request) {  
+function getData(request) {    
   
+  var nestedData = graphData(request, "insights/?metric=['page_fans', 'page_impressions', 'page_impressions_organic', 'page_impressions_paid', 'page_impressions_viral', 'page_fans_gender_age', 'page_fan_adds', 'page_consumptions', 'page_positive_feedback_by_type', 'page_negative_feedback']&period=day");
+  //var postsData =  graphData(request, "posts?time_increment=1&fields=message,story,created_time,permalink_url,likes.summary(true),comments.summary(true),shares");
+
   
   var requestedFieldIds = request.fields.map(function(field) {
     return field.name;
   });
   
+  
   var outputData = {};
   var requestedFields = getFields().forIds(requestedFieldIds);
-
   
   // Perform data request per field
   request.fields.forEach(function(field) {
@@ -189,61 +192,57 @@ function getData(request) {
     var rows = [];
     
     // Try to re-assign data when it fails at first attempt, until rows are filled in
-    while (rows.length < 1) {
-    if (field.name == 'pageName') {
-      outputData.page_name = graphData(request, "?fields=id,name");
-    }
-    if (field.name == 'pageFans') {
-      outputData.page_fans = graphData(request, "insights/page_fans?fields=values");
-    }
-    if (field.name == 'pageImpressionsTotal') {
-      outputData.page_impressions_total = graphData(request, "insights/page_impressions/day?fields=values");
-    }
-    if (field.name == 'pageImpressionsOrganic') {
-      outputData.page_impressions_organic = graphData(request, "insights/page_impressions_organic/day?fields=values");
-    }
-    if (field.name == 'pageImpressionsPaid') {
-      outputData.page_impressions_paid = graphData(request, "insights/page_impressions_paid/day?fields=values");
-    }
-    if (field.name == 'pageImpressionsViral') {
-      outputData.page_impressions_viral = graphData(request, "insights/page_impressions_viral/day?fields=values");
-    }
-    if (field.name == 'pageFansAge' || field.name == 'pageFansGender') {
-      outputData.page_fans_gender_age = graphData(request, "insights/page_fans_gender_age?fields=values");
-    }
-    if (field.name == 'pageFansAdds' || field.name == 'pageFansAddsDate') {
-      outputData.page_fans_adds = graphData(request, "insights/page_fan_adds?fields=values");
-    }
-    if (field.name == 'pageConsumptions') {
-      outputData.page_consumptions = graphData(request, "insights/page_consumptions/day?fields=values");
-    }
-    if (field.name == 'pagePositiveFeedback') {
-      outputData.page_positive_feedback = graphData(request, "insights/page_positive_feedback_by_type/day?fields=values");
-    }
-    if (field.name == 'pageNegativeFeedback') {
-      outputData.page_negative_feedback = graphData(request, "insights/page_negative_feedback/day?fields=values");
-    }
-    if (field.name == 'postId' || field.name == 'postDate' || field.name == 'postMessage' || field.name == 'postLink' || field.name == 'postLikes' || field.name == 'postComments' || field.name == 'postShares') {
-      outputData.posts = graphData(request, "posts?time_increment=1&fields=message,story,created_time,permalink_url,likes.summary(true),comments.summary(true),shares");
-    }
+      //while (rows.length < 1) {
+        if (field.name == 'pageName') {
+          outputData.page_name = graphData(request, "?fields=id,name");
+        }
+        if (field.name == 'pageFans') {
+          outputData.page_fans = nestedData['page_fans'];
+        }
+        if (field.name == 'pageImpressionsTotal') {
+           outputData.page_impressions_total = nestedData['page_impressions'];
+        }
+        if (field.name == 'pageImpressionsOrganic') {
+          outputData.page_impressions_organic = nestedData['page_impressions_organic'];
+        }
+        if (field.name == 'pageImpressionsPaid') {
+          outputData.page_impressions_paid = nestedData['page_impressions_paid'];
+        }
+        if (field.name == 'pageImpressionsViral') {
+          outputData.page_impressions_viral = nestedData['page_impressions_viral'];
+        }
+        if (field.name == 'pageFansAge' || field.name == 'pageFansGender') {
+          outputData.page_fans_gender_age = nestedData['page_fans_gender_age'];
+        }
+        if (field.name == 'pageFansAdds' || field.name == 'pageFansAddsDate') {
+          outputData.page_fans_adds = nestedData['page_fan_adds'];
+        }
+        if (field.name == 'pageConsumptions') {
+          outputData.page_consumptions = nestedData['page_consumptions'];
+        }
+        if (field.name == 'pagePositiveFeedback') {
+          outputData.page_positive_feedback = nestedData['page_positive_feedback_by_type'];
+        }
+        if (field.name == 'pageNegativeFeedback') {
+          outputData.page_negative_feedback = nestedData['page_negative_feedback'];
+        }
+    /*
+        if (field.name == 'postId' || field.name == 'postDate' || field.name == 'postMessage' || field.name == 'postLink' || field.name == 'postLikes' || field.name == 'postComments' || field.name == 'postShares') {
+          outputData.posts = postsData;
+        }
+        */
+        
+        if (typeof outputData !== 'undefined') {    
+          rows = reportToRows(requestedFields, outputData);
+          // TODO: parseData.paging.next != undefined
+        } else {
+          rows = [];
+        }
+         result = {
+            schema: requestedFields.build(),
+            rows: rows
+          };  
     
-    if (typeof outputData !== 'undefined') {    
-       rows = reportToRows(requestedFields, outputData);
-        // TODO: parseData.paging.next != undefined
-    } else {
-       rows = [];
-    }
-     // Only break attempt to re-assign data if there is no data at all
-     if (rows[0] == 'no-data') {
-       rows = [];
-       break;
-    }
-      
-      result = {
-        schema: requestedFields.build(),
-        rows: rows
-      };  
-    }
   });
   
   //cache.put(request_hash, JSON.stringify(result));
@@ -265,40 +264,45 @@ function reportPageName(report) {
 function reportPosts(report) {  
   var rows = [];
   
-  // Loop posts
-  for( var i = 0; i < report.data.length; i++) {
-    
-    // Define empty row object
-    var row = {};
-    row["id"] = report.data[i]['id'];
-    
-    //Return date object to ISO formatted string
-    row["postDate"] = new Date(report.data[i]['created_time']).toISOString().slice(0, 10);
-    
-    row["postMessage"] = report.data[i]['message'] || report.data[i]['story'];
-    row["postLink"] = report.data[i]['permalink_url'];
-    
-    row["postLikes"] = 0;
-    
-    // Determine if likes object exist
-    if (typeof report.data[i]['likes'] !== 'undefined') {
-      row["postLikes"] = report.data[i]['likes']['summary']['total_count'];
+  // Only loop object when it contains data
+  if (typeof report.data !== 'undefined' && report.data.length > 0) {
+  
+    // Loop posts
+    for( var i = 0; i < report.data.length; i++) {
+      
+      // Define empty row object
+      var row = {};
+      row["postId"] = report.data[i]['id'];
+      
+      //Return date object to ISO formatted string
+      row["postDate"] = new Date(report.data[i]['created_time']).toISOString().slice(0, 10);
+      
+      row["postMessage"] = report.data[i]['message'] || report.data[i]['story'];
+      row["postLink"] = report.data[i]['permalink_url'];
+      
+      row["postLikes"] = 0;
+      
+      // Determine if likes object exist
+      if (typeof report.data[i]['likes'] !== 'undefined') {
+        row["postLikes"] = report.data[i]['likes']['summary']['total_count'];
+      }
+      
+      row["postComments"] = 0;
+      if (typeof report.data[i]['comments'] !== 'undefined') {
+        row["postComments"] = report.data[i]['comments']['summary']['total_count'];
+      }
+      
+      row["postShares"] = 0;
+      // Determine if shares object exist
+      if (typeof report.data[i]['shares'] !== 'undefined') {
+        row["postShares"] = report.data[i]['shares']['count'];
+      }
+      
+      // Assign all post data to rows list
+      rows.push(row);
     }
-    
-    row["postComments"] = 0;
-    if (typeof report.data[i]['comments'] !== 'undefined') {
-      row["postComments"] = report.data[i]['comments']['summary']['total_count'];
-    }
-    
-    row["postShares"] = 0;
-    // Determine if shares object exist
-    if (typeof report.data[i]['shares'] !== 'undefined') {
-      row["postShares"] = report.data[i]['shares']['count'];
-    }
-    
-    // Assign all post data to rows list
-    rows.push(row);
   }
+  
   return rows;
 }
 
@@ -307,8 +311,8 @@ function reportPageFans(report) {
     
   // Only report last number of page likes within date range
   var row = {};
-  var valueRows = report['data'][0]['values'][0];
-  row["pageFans"] = report['data'][0]['values'][0][valueRows.length-1]['value'];
+  var lastObject = report[report.length-1]
+  row["pageFans"] = lastObject[lastObject.length-1]['value'];
   rows[0] = row;
   
   return rows;
@@ -319,20 +323,25 @@ function reportPageFans(report) {
 function reportDaily(report, type) {
   var rows = [];
   
-  var valueRows = report['data'][0]['values'][0];
+  //Loop chunks
+  for (var c = 0; c <  report.length; c++) {
   
-  // Loop report
-  for (var i = 0; i < valueRows.length; i++) {
-    var row = {};
+    var valueRows = report[c];
     
-    row[type] = report['data'][0]['values'][0][i]['value'];
-    
-    // Assign all data to rows list
-    rows.push(row);
+    // Loop report
+    for (var i = 0; i < valueRows.length; i++) {
+      var row = {};
+      
+      row[type] = report[c][i]['value'];
+      
+      // Assign all data to rows list
+      rows.push(row);
+    }
   }
-  
+
   return rows;
 }
+
 
 function reportGenderAge(report) {
   var rows = [];
@@ -353,8 +362,9 @@ function reportGenderAge(report) {
   
   // Only report last number of fans per gender/age within date range
   // Get gender/age objects
-  var results = report.data[0].values[0][report.data[0].values[0].length-1]['value'];
-  console.info(results);
+  var lastObject = report[report.length-1]
+  var results = lastObject[lastObject.length-1]['value'];
+  //console.info(results);
   
   // Loop all objects
   for (var property in results) {
@@ -437,54 +447,60 @@ function formatDate(date) {
     return [year, month, day].join('');
 }
 
+// Report all daily reports to rows 
 function reportPageFansAdds(report) {
   var rows = [];
-    
-  // Only report last number of page likes within date range
-  var valueRows = report['data'][0]['values'][0];
   
-  for (var i = 0; i < valueRows.length; i++) {
-    var row = {};
-    row["pageFansAdds"] = report['data'][0]['values'][0][i]['value'];
-    // Data is reported one day before. end_time minus 1 day in milliseconds brings the right date
-    row["pageFansAddsDate"] = formatDate(new Date(new Date(report['data'][0]['values'][0][i]['end_time']).getTime()-86400000));
-
-    //console.log("pageFansAddsDate %s", new Date(new Date(report['data'][0]['values'][0][i]['end_time']).getTime()-86400000).toISOString().slice(0, 10));
+  //Loop chunks
+  for (var c = 0; c <  report.length; c++) {
+  
+    var valueRows = report[c];
     
-    // Assign all data to rows list
-    rows.push(row);
+    // Loop report
+    for (var i = 0; i < valueRows.length; i++) {
+      var row = {};
+      
+      row["pageFansAdds"] = report[c][i]['value'];
+      
+      // Data is reported one day before. end_time minus 1 day in milliseconds brings the right date
+      row["pageFansAddsDate"] = formatDate(new Date(new Date(report[c][i]['end_time']).getTime()-86400000));
+      
+      // Assign all data to rows list
+      rows.push(row);
+    }
   }
-  
- // console.log(rows);
 
   return rows;
-  
 }
 
 // Report positive feedback to rows
 function reportPositiveFeedback(report, type) {
   var rows = [];
   
-  var valueRows = report['data'][0]['values'][0];
+  //Loop chunks
+  for (var c = 0; c <  report.length; c++) {
   
-  // Loop report
-  for (var i = 0; i < valueRows.length; i++) {
-    var row = {};
-    var count = 0;
-    
-     // Determine if field exists. Count amount of positive actions
-    var feedbackTypes = ['answer', 'claim', 'comment', 'like', 'link', 'other', 'rsvp'];
-
-    for (var property in feedbackTypes) {
-       if (typeof report['data'][0]['values'][0][i]['value'][feedbackTypes[property]] !== 'undefined') {
-         count += report['data'][0]['values'][0][i]['value'][feedbackTypes[property]];
-       }
-    }
+    var valueRows = report[c];
+  
+    // Loop report
+    for (var i = 0; i < valueRows.length; i++) {
+      var row = {};
+      var count = 0;
+      
+      // Determine if field exists. Count amount of positive actions
+      var feedbackTypes = ['answer', 'claim', 'comment', 'like', 'link', 'other', 'rsvp'];
+      
+      for (var property in feedbackTypes) {
+        if (typeof report[c][i]['value'][feedbackTypes[property]] !== 'undefined') {
+          count += report[c][i]['value'][feedbackTypes[property]];
+        }
+      }
    
-    row[type] = count;
+      row[type] = count;
     
-    // Assign all data to rows list
-    rows.push(row);
+      // Assign all data to rows list
+      rows.push(row);
+    }
   }
   
   return rows;
@@ -531,13 +547,6 @@ function reportToRows(requestedFields, report) {
     data = reportPosts(report.posts) || [];
   } 
   
-  //If data doesn't contain any values
-  if (data.length < 1) {
-    return ['no-data'];
-  } else {
-    
-  
-    
   // Merge data
   for(var i = 0; i < data.length; i++) {
     row = [];    
@@ -550,7 +559,7 @@ function reportToRows(requestedFields, report) {
           case 'postDate':
             return row.push(data[i]["postDate"].replace(/-/g,''));
           case 'postId':
-            return row.push(data[i]["id"]);
+            return row.push(data[i]["postId"]);
           case 'postMessage':
             return row.push(data[i]["postMessage"]);
           case 'postLink':
@@ -611,7 +620,6 @@ function reportToRows(requestedFields, report) {
     
   return rows;
     
-  }
 }
 
 

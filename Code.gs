@@ -172,11 +172,10 @@ function getSchema(request) {
     return { 'schema': fields };    
 }
 
-function getData(request) {    
+function getData(request) {   
   
   var nestedData = graphData(request, "insights/?metric=['page_fans', 'page_impressions', 'page_impressions_organic', 'page_impressions_paid', 'page_impressions_viral', 'page_fans_gender_age', 'page_fan_adds', 'page_consumptions', 'page_positive_feedback_by_type', 'page_negative_feedback']&period=day");
-  //var postsData =  graphData(request, "posts?time_increment=1&fields=message,story,created_time,permalink_url,likes.summary(true),comments.summary(true),shares");
-
+  var postsData =  graphData(request, "posts?time_increment=1&fields=message,story,created_time,permalink_url,likes.summary(true),comments.summary(true),shares");
   
   var requestedFieldIds = request.fields.map(function(field) {
     return field.name;
@@ -188,7 +187,6 @@ function getData(request) {
   
   // Perform data request per field
   request.fields.forEach(function(field) {
-    
     var rows = [];
     
     // Try to re-assign data when it fails at first attempt, until rows are filled in
@@ -226,11 +224,9 @@ function getData(request) {
         if (field.name == 'pageNegativeFeedback') {
           outputData.page_negative_feedback = nestedData['page_negative_feedback'];
         }
-    /*
         if (field.name == 'postId' || field.name == 'postDate' || field.name == 'postMessage' || field.name == 'postLink' || field.name == 'postLikes' || field.name == 'postComments' || field.name == 'postShares') {
           outputData.posts = postsData;
         }
-        */
         
         if (typeof outputData !== 'undefined') {    
           rows = reportToRows(requestedFields, outputData);
@@ -625,7 +621,7 @@ function reportToRows(requestedFields, report) {
 
 function isAdminUser(){
  var email = Session.getEffectiveUser().getEmail();
-  if( email == 'steven@itsnotthatkind.org' ){
+  if( email == 'steven@itsnotthatkind.org' || email == 'analyticsintk@gmail.com'){
     return true; 
   } else {
     return false;

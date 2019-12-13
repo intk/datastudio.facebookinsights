@@ -1,5 +1,23 @@
+function getGraphData(url) {
+  url = encodeURI(url);
+
+  try {
+    // Try and fetch the specified url.
+    var response = UrlFetchApp.fetch(url, { muteHttpExceptions: true});
+    return response;
+
+  } catch (e) {
+    // If it fails, it's likely because we've hit the rate limit for UrlFetchApp.
+    // Sleep for one second before making another request.
+    Utilities.sleep(1000);
+
+    var response = UrlFetchApp.fetch(url, { muteHttpExceptions: true});
+    return response;
+  }
+}
+
 // Get data from Facebook Graph API
-function graphData(request, query) {
+function graphData(request, query) {  
   var pageId = request.configParams['page_id'];
   var requestEndpoint = "https://graph.facebook.com/v5.0/"+pageId+"/"
   
@@ -109,12 +127,8 @@ function graphData(request, query) {
     
     //console.log(requestUrl);
     
-    var response = UrlFetchApp.fetch(requestUrl,
-      {
-        muteHttpExceptions : true
-      });
-    
-    dataObj = JSON.parse(response);
+    //Parse data
+    dataObj = JSON.parse(getGraphData(requestUrl));
   }
 
   // If posts object
@@ -130,12 +144,8 @@ function graphData(request, query) {
     
     //console.log(requestUrl);
     
-    var response = UrlFetchApp.fetch(requestUrl,
-      {
-        muteHttpExceptions : true
-      });
-    
-    dataObj = JSON.parse(response);
+    // Parse data
+    dataObj = JSON.parse(getGraphData(requestUrl));
         
     
   // All other objects  
@@ -170,14 +180,11 @@ function graphData(request, query) {
       var requestUrl = requestEndpoint+query+dateRange+"&access_token="+pageToken;
       
       //console.log(requestUrl);
-            
-      var response = UrlFetchApp.fetch(requestUrl,
-                                       {
-                                         muteHttpExceptions : true
-                                       });
       
-      var parseData = JSON.parse(response);       
-            
+      // Parse data
+      var parseData = JSON.parse(getGraphData(requestUrl));
+      
+                  
       // Loop 'data' object from response
        if (parseData['data'].length > 0) {
           for(var d = 0; d < parseData['data'].length; d++) {

@@ -7,10 +7,7 @@ function getGraphData(url) {
     return response;
 
   } catch (e) {
-    // If it fails, it's likely because we've hit the rate limit for UrlFetchApp.
-    // Sleep for one second before making another request.
-    Utilities.sleep(1000);
-
+    
     var response = UrlFetchApp.fetch(url, { muteHttpExceptions: true});
     return response;
   }
@@ -130,26 +127,6 @@ function graphData(request, query) {
     //Parse data
     dataObj = JSON.parse(getGraphData(requestUrl));
   }
-
-  // If posts object
-  else if (query.indexOf('posts') > -1) {
-    // Set date range parameters
-    var dateRangeSince = queryChunks[0]['since'].toISOString().slice(0, 10);
-    var dateRangeUntil = queryChunks[queryChunks.length-1]['until'].toISOString().slice(0, 10);
-    
-    var dateRange = "&since="+dateRangeSince+"&until="+dateRangeUntil;
-        
-    // Perform API Request
-    var requestUrl = requestEndpoint+query+dateRange+"&access_token="+pageToken;
-    
-    //console.log(requestUrl);
-    
-    // Parse data
-    dataObj = JSON.parse(getGraphData(requestUrl));
-        
-    
-  // All other objects  
-  } else {
     
     
     // Define properties
@@ -207,7 +184,6 @@ function graphData(request, query) {
        }
       
     }
-  }
   
   //console.log(JSON.stringify(dataObj));
   

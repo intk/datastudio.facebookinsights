@@ -41,6 +41,12 @@ function getFields() {
       .setName('Page Likes')
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
+  
+  fields.newMetric()
+      .setId('pagePostsReach')
+      .setName('Post Reach')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
     
   return fields;
 }
@@ -53,7 +59,7 @@ function getSchema(request) {
 
 function getData(request) {   
   
-  var nestedData = graphData(request, "insights/?metric=['page_views_total', 'page_fans']&period=day");
+  var nestedData = graphData(request, "insights/?metric=['page_views_total', 'page_fans', 'page_posts_impressions_unique']&period=day");
   
   var requestedFieldIds = request.fields.map(function(field) {
     return field.name;
@@ -72,6 +78,9 @@ function getData(request) {
         }
         if (field.name == 'pageFans') {
            outputData.page_fans = nestedData['page_fans'];
+        }
+        if (field.name == 'pagePostsReach') {
+           outputData.page_posts_reach = nestedData['page_posts_impressions_unique'];
         }
         
         if (typeof outputData !== 'undefined') {    
@@ -135,7 +144,10 @@ function reportToRows(requestedFields, report) {
   }
   if (typeof report.page_fans !== 'undefined') {
     data = data.concat(reportPageFans(report.page_fans));
-  }    
+  }   
+  if (typeof report.page_posts_reach !== 'undefined') {
+    data = data.concat(reportDaily(report.page_posts_reach, 'pagePostsReach'));
+  }   
   
   // Merge data
   for(var i = 0; i < data.length; i++) {
@@ -147,6 +159,8 @@ function reportToRows(requestedFields, report) {
               return row.push(data[i]["pageViewsTotal"]);
             case 'pageFans':
               return row.push(data[i]["pageFans"]);
+            case 'pagePostsReach':
+              return row.push(data[i]["pagePostsReach"]);
         }
       
     });

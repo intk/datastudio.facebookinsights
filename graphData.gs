@@ -126,20 +126,13 @@ function graphData(request, query) {
     
     //Parse data
     dataObj = JSON.parse(getGraphData(requestUrl));
-  }
+  } else {
     
     
     // Define properties
     dataObj = {'page_fans':[], 
                'page_impressions':[], 
-               'page_impressions_organic':[], 
-               'page_impressions_paid':[], 
-               'page_impressions_viral':[], 
-               'page_fans_gender_age':[], 
-               'page_fan_adds':[], 
-               'page_consumptions':[], 
-               'page_positive_feedback_by_type':[], 
-               'page_negative_feedback':[]};
+               'page_post_engagements':[]};
     
     // Loop queryChunks
     for(var i = 0; i < queryChunks.length; i++) {
@@ -184,8 +177,9 @@ function graphData(request, query) {
        }
       
     }
+  }
   
-  //console.log(JSON.stringify(dataObj));
+  console.log(JSON.stringify(dataObj));
   
   
   return dataObj;

@@ -31,20 +31,8 @@ function getFields() {
   var aggregations = cc.AggregationType; 
   
   fields.newMetric()
-      .setId('pageFans')
-      .setName('Total Fans')
-      .setType(types.NUMBER)
-      .setAggregation(aggregations.SUM);
-  
-  fields.newMetric()
-      .setId('pageImpressionsTotal')
-      .setName('Total Impressions')
-      .setType(types.NUMBER)
-      .setAggregation(aggregations.SUM);
-  
-  fields.newMetric()
-      .setId('pagePostEngagements')
-      .setName('Post Engagements')
+      .setId('pageViewsTotal')
+      .setName('Page Views')
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
     
@@ -59,7 +47,7 @@ function getSchema(request) {
 
 function getData(request) {   
   
-  var nestedData = graphData(request, "insights/?metric=['page_fans', 'page_impressions', 'page_post_engagements']&period=day");
+  var nestedData = graphData(request, "insights/?metric=['page_views_total']&period=day");
   
   var requestedFieldIds = request.fields.map(function(field) {
     return field.name;
@@ -74,14 +62,8 @@ function getData(request) {
     var rows = [];
     
     // Try to re-assign data when it fails at first attempt, until rows are filled in
-        if (field.name == 'pageFans') {
-          outputData.page_fans = nestedData['page_fans'];
-        }
-        if (field.name == 'pageImpressionsTotal') {
-           outputData.page_impressions_total = nestedData['page_impressions'];
-        }
-        if (field.name == 'pagePostEngagements') {
-           outputData.page_post_engagements = nestedData['page_post_engagements'];
+        if (field.name == 'pageViewsTotal') {
+           outputData.page_views_total = nestedData['page_views_total'];
         }
         
         if (typeof outputData !== 'undefined') {    
@@ -140,14 +122,8 @@ function reportToRows(requestedFields, report) {
   var rows = [];
   var data = [];  
   
-  if (typeof report.page_fans !== 'undefined') {
-    data = data.concat(reportPageFans(report.page_fans));
-  }
-  if (typeof report.page_impressions_total !== 'undefined') {
-    data = reportDaily(report.page_impressions_total, 'pageImpressionsTotal');
-  }  
-  if (typeof report.page_post_engagements !== 'undefined') {
-    data = reportDaily(report.page_post_engagements, 'pagePostEngagements');
+  if (typeof report.page_views_total !== 'undefined') {
+    data = data.concat(reportDaily(report.page_views_total, 'pageViewsTotal'));
   }  
   
   // Merge data
@@ -156,12 +132,8 @@ function reportToRows(requestedFields, report) {
     requestedFields.asArray().forEach(function (field) {
   
          switch (field.getId()) {
-           case 'pageFans':
-              return row.push(data[i]["pageFans"]);
-           case 'pageImpressionsTotal':
-              return row.push(data[i]["pageImpressionsTotal"]);
-           case 'pagePostEngagements':
-              return row.push(data[i]["pagePostEngagements"]);
+           case 'pageViewsTotal':
+              return row.push(data[i]["pageViewsTotal"]);
         }
       
     });

@@ -36,6 +36,11 @@ function getFields() {
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
   
+  fields.newMetric()
+      .setId('pageImpressionsTotal')
+      .setName('Total Impressions')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
     
   return fields;
 }
@@ -48,7 +53,7 @@ function getSchema(request) {
 
 function getData(request) {   
   
-  var nestedData = graphData(request, "insights/?metric=['page_fans']&period=day");
+  var nestedData = graphData(request, "insights/?metric=['page_fans', 'page_impressions']&period=day");
   
   var requestedFieldIds = request.fields.map(function(field) {
     return field.name;
@@ -65,6 +70,9 @@ function getData(request) {
     // Try to re-assign data when it fails at first attempt, until rows are filled in
         if (field.name == 'pageFans') {
           outputData.page_fans = nestedData['page_fans'];
+        }
+        if (field.name == 'pageImpressionsTotal') {
+           outputData.page_impressions_total = nestedData['page_impressions'];
         }
         
         if (typeof outputData !== 'undefined') {    
@@ -96,6 +104,29 @@ function reportPageFans(report) {
   
 }
 
+// Report all daily reports to rows 
+function reportDaily(report, type) {
+  var rows = [];
+  
+  //Loop chunks
+  for (var c = 0; c <  report.length; c++) {
+  
+    var valueRows = report[c];
+    
+    // Loop report
+    for (var i = 0; i < valueRows.length; i++) {
+      var row = {};
+      
+      row[type] = report[c][i]['value'];
+      
+      // Assign all data to rows list
+      rows.push(row);
+    }
+  }
+
+  return rows;
+}
+
 function reportToRows(requestedFields, report) {
   var rows = [];
   var data = [];  
@@ -103,6 +134,9 @@ function reportToRows(requestedFields, report) {
   if (typeof report.page_fans !== 'undefined') {
     data = data.concat(reportPageFans(report.page_fans));
   }
+  if (typeof report.page_impressions_total !== 'undefined') {
+    data = reportDaily(report.page_impressions_total, 'pageImpressionsTotal');
+  }  
   
   // Merge data
   for(var i = 0; i < data.length; i++) {
@@ -112,6 +146,8 @@ function reportToRows(requestedFields, report) {
          switch (field.getId()) {
            case 'pageFans':
               return row.push(data[i]["pageFans"]);
+           case 'pageImpressionsTotal':
+              return row.push(data[i]["pageImpressionsTotal"]);
         }
       
     });

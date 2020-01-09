@@ -44,7 +44,7 @@ function getFields() {
   
   fields.newMetric()
       .setId('pagePostsReach')
-      .setName('Post Reach')
+      .setName('Total Posts Reach')
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
  
@@ -53,7 +53,34 @@ function getFields() {
       .setName('Post Engagement')
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
-    
+  
+  fields.newDimension()
+      .setId('postDate')
+      .setName('Post Date')
+      .setType(types.YEAR_MONTH_DAY);
+  
+  fields.newDimension()
+      .setId('postMessage')
+      .setName('Post Message')
+      .setType(types.TEXT);  
+  
+  fields.newDimension()
+      .setId('postLink')
+      .setName('Link to post')
+      .setType(types.URL);
+  
+  fields.newDimension()
+       .setId('postMessageHyperLink')
+       .setName('Post Message Link')
+       .setType(types.HYPERLINK)
+       .setFormula('HYPERLINK($postLink,$postMessage)');
+  
+  fields.newMetric()
+      .setId('postReach')
+      .setName('Reach on post')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
   return fields;
 }
 
@@ -65,7 +92,7 @@ function getSchema(request) {
 
 function getData(request) {   
   
-  var nestedData = graphData(request, "insights/?metric=['page_views_total', 'page_fans', 'page_posts_impressions_unique' , 'page_post_engagements']&period=day");
+  var nestedData = graphData(request, "?fields=insights.metric(page_views_total, page_fans, page_posts_impressions_unique, page_post_engagements).period(day).since([dateSince]).until([dateUntil]),posts.fields(created_time, message, permalink_url, insights.metric(post_impressions_unique)).since([dateSince]).until([dateUntil])");
   
   var requestedFieldIds = request.fields.map(function(field) {
     return field.name;
@@ -91,6 +118,10 @@ function getData(request) {
         if (field.name == 'pagePostsEngagement') {
            outputData.page_posts_engagement = nestedData['page_post_engagements'];
         }
+        if (field.name == 'postDate' || field.name == 'postMessage' || field.name == 'postLink' || field.name == 'postReach') {
+          outputData.posts = nestedData['posts'];
+        }
+    
         
         if (typeof outputData !== 'undefined') {    
           rows = reportToRows(requestedFields, outputData);
@@ -120,6 +151,7 @@ function reportPageFans(report) {
   return rows;
   
 }
+  
 
 // Report all daily reports to rows 
 function reportDaily(report, type) {
@@ -144,6 +176,34 @@ function reportDaily(report, type) {
   return rows;
 }
 
+// Report posts to rows
+function reportPosts(report) {  
+  var rows = [];
+  
+  // Only loop object when it contains data
+  if (typeof report.data !== 'undefined' && report.data.length > 0) {
+  
+    // Loop posts
+    for( var i = 0; i < report.data.length; i++) {
+      
+      // Define empty row object
+      var row = {};
+      
+      //Return date object to ISO formatted string
+      row["postDate"] = new Date(report.data[i]['created_time']).toISOString().slice(0, 10);
+      
+      row["postMessage"] = report.data[i]['message'] || report.data[i]['story'];
+      row["postLink"] = report.data[i]['permalink_url'];
+      row["postReach"] = report.data[i].insights.data[0].values[0]['value'];
+      
+      // Assign all post data to rows list
+      rows.push(row);
+    }
+  }
+  
+  return rows;
+}
+
 function reportToRows(requestedFields, report) {
   var rows = [];
   var data = [];  
@@ -159,23 +219,16 @@ function reportToRows(requestedFields, report) {
   }  
   if (typeof report.page_posts_engagement !== 'undefined') {
     data = data.concat(reportDaily(report.page_posts_engagement, 'pagePostsEngagement'));
-  }  
+  }
+  if (typeof report.posts !== 'undefined') {
+    data = data.concat(reportPosts(report.posts));
+  }   
   
   // Merge data
   for(var i = 0; i < data.length; i++) {
     row = [];    
     requestedFields.asArray().forEach(function (field) {
-  
-         switch (field.getId()) {
-           case 'pageViewsTotal':
-              return row.push(data[i]["pageViewsTotal"]);
-            case 'pageFans':
-              return row.push(data[i]["pageFans"]);
-            case 'pagePostsReach':
-              return row.push(data[i]["pagePostsReach"]);
-            case 'pagePostsEngagement':
-              return row.push(data[i]["pagePostsEngagement"]);
-        }
+      return row.push(data[i][field.getId()]);
       
     });
     if (row.length > 0) {

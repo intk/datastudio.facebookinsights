@@ -141,45 +141,52 @@ function graphData(request, query) {
       var dateRangeSince = queryChunks[i]['since'].toISOString().slice(0, 10);
       var dateRangeUntil = queryChunks[i]['until'].toISOString().slice(0, 10);
       
-      
-      var dateRange = "&since="+dateRangeSince+"&until="+dateRangeUntil;
-      
-      
+      //Replace all occurences of date range placeholders from query
+      query = query.replace(/\[dateSince\]/g, dateRangeSince).replace(/\[dateUntil\]/g, dateRangeUntil);
       
       // Perform API Request
-      var requestUrl = requestEndpoint+query+dateRange+"&access_token="+pageToken;
+      var requestUrl = requestEndpoint+query+"&access_token="+pageToken;
       
-      //console.log(requestUrl);
+      console.log(requestUrl);
       
       // Parse data
       var parseData = JSON.parse(getGraphData(requestUrl));
       
+      // Loop all nested objects in parseData object
+      for (var parsedObj in parseData) {
+        
+        // Determine if 'data' object exists in nested object
+        if (typeof parseData[parsedObj]['data'] !== 'undefined' &&  parseData[parsedObj]['data'].length > 0) {
+          
+          
+          // Determine if nested object is a 'posts' object
+          if (parsedObj == 'posts') {
+            dataObj[parsedObj] = parseData[parsedObj];
+          } else {
+            
+            for(var d = 0; d < parseData[parsedObj]['data'].length; d++) {
+              for (var property in dataObj) {
+                
+                // Determine if property exists in data object
+                if (parseData[parsedObj]['data'][d]['name'] == property) {
                   
-      // Loop 'data' object from response
-       if (parseData['data'].length > 0) {
-          for(var d = 0; d < parseData['data'].length; d++) {
-
-            for (var property in dataObj) {
-                            
-              // Determine if property exists in data object
-              if (parseData['data'][d]['name'] == property) {
+                  // Push values to right property
+                  dataObj[property].push(parseData[parsedObj]['data'][d]['values']);
+                }
                 
-                 console.log("PROPERTY FOUND: %s", property);
-                
-                // Push values to right property
-                dataObj[property].push(parseData['data'][d]['values']);
               }
               
             }
-            
           }
+          
+        }
         
-       }
+      }
       
     }
   }
   
-  console.log(JSON.stringify(dataObj));
+  console.error(JSON.stringify(dataObj));
   
   
   return dataObj;

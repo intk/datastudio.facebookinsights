@@ -37,7 +37,7 @@ function getFields() {
       .setAggregation(aggregations.SUM);
   
   fields.newMetric()
-      .setId('pageFans')
+      .setId('pageFanAdds')
       .setName('Page Likes')
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
@@ -50,7 +50,7 @@ function getFields() {
  
   fields.newMetric()
       .setId('pagePostsEngagement')
-      .setName('Post Engagement')
+      .setName('Total Post Engagement')
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
   
@@ -81,6 +81,37 @@ function getFields() {
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
   
+  fields.newMetric()
+      .setId('postReactions')
+      .setName('Reactions on post')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
+  fields.newMetric()
+      .setId('postComments')
+      .setName('Comments on post')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
+  fields.newMetric()
+      .setId('postShares')
+      .setName('Shares on post')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
+  fields.newMetric()
+      .setId('postClicks')
+      .setName('Clicks on post')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
+  fields.newMetric()
+      .setId('postEngagement')
+      .setName('Engagement on post')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM)
+      .setFormula('$postReactions+$postComments+$postShares+$postClicks');
+  
   return fields;
 }
 
@@ -92,7 +123,7 @@ function getSchema(request) {
 
 function getData(request) {   
   
-  var nestedData = graphData(request, "?fields=insights.metric(page_views_total, page_fans, page_posts_impressions_unique, page_post_engagements).period(day).since([dateSince]).until([dateUntil]),posts.fields(created_time, message, permalink_url, insights.metric(post_impressions_unique)).since([dateSince]).until([dateUntil])");
+  var nestedData = graphData(request, "?fields=insights.metric(page_views_total, page_fan_adds_unique, page_posts_impressions_unique, page_post_engagements).period(day).since([dateSince]).until([dateUntil]),posts.fields(created_time, message, permalink_url, insights.metric(post_impressions_unique, post_clicks, post_reactions_by_type_total), comments.summary(true), shares).since([dateSince]).until([dateUntil])");
   
   var requestedFieldIds = request.fields.map(function(field) {
     return field.name;
@@ -109,8 +140,8 @@ function getData(request) {
         if (field.name == 'pageViewsTotal') {
            outputData.page_views_total = nestedData['page_views_total'];
         }
-        if (field.name == 'pageFans') {
-           outputData.page_fans = nestedData['page_fans'];
+        if (field.name == 'pageFanAdds') {
+           outputData.page_fan_adds = nestedData['page_fan_adds_unique'];
         }
         if (field.name == 'pagePostsReach') {
            outputData.page_posts_reach = nestedData['page_posts_impressions_unique'];
@@ -118,7 +149,7 @@ function getData(request) {
         if (field.name == 'pagePostsEngagement') {
            outputData.page_posts_engagement = nestedData['page_post_engagements'];
         }
-        if (field.name == 'postDate' || field.name == 'postMessage' || field.name == 'postLink' || field.name == 'postReach') {
+        if (field.name == 'postDate' || field.name == 'postMessage' || field.name == 'postLink' || field.name == 'postReach' || field.name == 'postReactions') {
           outputData.posts = nestedData['posts'];
         }
     
@@ -137,19 +168,6 @@ function getData(request) {
   });
   
   return result;  
-}
-
-function reportPageFans(report) {
-  var rows = [];
-    
-  // Only report last number of page likes within date range
-  var row = {};
-  var lastObject = report[report.length-1]
-  row["pageFans"] = lastObject[lastObject.length-1]['value'];
-  rows[0] = row;
-  
-  return rows;
-  
 }
   
 
@@ -195,6 +213,27 @@ function reportPosts(report) {
       row["postMessage"] = report.data[i]['message'] || report.data[i]['story'];
       row["postLink"] = report.data[i]['permalink_url'];
       row["postReach"] = report.data[i].insights.data[0].values[0]['value'];
+      row["postClicks"] = report.data[i].insights.data[1].values[0]['value'];
+      
+      // Sum all reactions
+      var reactionsCount = 0;
+      var reactionsValues = report.data[i].insights.data[2].values[0]['value'];
+      for (var property in reactionsValues) {
+        reactionsCount += reactionsValues[property];
+      }
+      row["postReactions"] = reactionsCount;
+      
+      row["postComments"] = 0;
+      // Determine if comments object exist
+      if (typeof report.data[i]['comments'] !== 'undefined') {
+        row["postComments"] = report.data[i]['comments']['summary']['total_count'];
+      }
+    
+      row["postShares"] = 0;
+      // Determine if shares object exist
+      if (typeof report.data[i]['shares'] !== 'undefined') {
+        row["postShares"] = report.data[i]['shares']['count'];
+      }
       
       // Assign all post data to rows list
       rows.push(row);
@@ -211,8 +250,8 @@ function reportToRows(requestedFields, report) {
   if (typeof report.page_views_total !== 'undefined') {
     data = data.concat(reportDaily(report.page_views_total, 'pageViewsTotal'));
   }
-  if (typeof report.page_fans !== 'undefined') {
-    data = data.concat(reportPageFans(report.page_fans));
+  if (typeof report.page_fan_adds !== 'undefined') {
+    data = data.concat(reportDaily(report.page_fan_adds, 'pageFanAdds'));
   }   
   if (typeof report.page_posts_reach !== 'undefined') {
     data = data.concat(reportDaily(report.page_posts_reach, 'pagePostsReach'));

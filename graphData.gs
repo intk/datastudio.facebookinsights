@@ -122,7 +122,7 @@ function graphData(request, query) {
     // Perform API Request
     var requestUrl = requestEndpoint+query+"&access_token="+pageToken;
     
-    //console.log(requestUrl);
+    console.log(requestUrl);
     
     //Parse data
     dataObj = JSON.parse(getGraphData(requestUrl));
@@ -130,7 +130,7 @@ function graphData(request, query) {
     
     
     // Define properties
-    dataObj = {'page_fans':[], 
+    dataObj = {'page_fan_adds_unique':[], 
                'page_views_total':[],
                'page_posts_impressions_unique':[],
                'page_post_engagements':[]};    
@@ -170,7 +170,12 @@ function graphData(request, query) {
                 // Determine if property exists in data object
                 if (parseData[parsedObj]['data'][d]['name'] == property) {
                   
+                  /*
                   // Push values to right property
+                  var periodObj = {'period': parseData[parsedObj]['data'][d]['period'], 
+                                   'data': parseData[parsedObj]['data'][d]['values']
+                                  };
+                  */
                   dataObj[property].push(parseData[parsedObj]['data'][d]['values']);
                 }
                 

@@ -130,7 +130,8 @@ function graphData(request, query) {
     
     
     // Define properties
-    dataObj = {'page_fan_adds_unique':[], 
+    dataObj = {'page_fans':[],
+               'page_fan_adds_unique':[],
                'page_views_total':[],
                'page_posts_impressions_unique':[],
                'page_post_engagements':[]};
@@ -195,7 +196,7 @@ function graphData(request, query) {
     }
   }
   
-  console.error(JSON.stringify(dataObj));
+  //console.error(JSON.stringify(dataObj));
   
   
   return dataObj;

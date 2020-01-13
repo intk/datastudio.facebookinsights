@@ -30,6 +30,11 @@ function getFields() {
   var types = cc.FieldType;
   var aggregations = cc.AggregationType; 
   
+   fields.newDimension()
+      .setId('pageName')
+      .setName('Page Name')
+      .setType(types.TEXT);
+  
   fields.newMetric()
       .setId('pageViewsTotal')
       .setName('Page Views')
@@ -42,11 +47,13 @@ function getFields() {
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
   
+  /*
   fields.newMetric()
       .setId('pagePostsReach')
       .setName('Total Posts Reach')
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
+  */
  
   fields.newMetric()
       .setId('pagePostsEngagement')
@@ -123,7 +130,7 @@ function getSchema(request) {
 
 function getData(request) {   
   
-  var nestedData = graphData(request, "?fields=insights.metric(page_views_total, page_fan_adds_unique, page_posts_impressions_unique, page_post_engagements).period(day).since([dateSince]).until([dateUntil]),posts.fields(created_time, message, permalink_url, insights.metric(post_impressions_unique, post_clicks, post_reactions_by_type_total), comments.summary(true), shares).since([dateSince]).until([dateUntil])");
+  var nestedData = graphData(request, "?fields=name,insights.metric(page_views_total, page_fan_adds_unique, page_post_engagements).period(day).since([dateSince]).until([dateUntil]),posts.fields(created_time, message, permalink_url, insights.metric(post_impressions_unique, post_clicks, post_reactions_by_type_total), comments.summary(true), shares).since([dateSince]).until([dateUntil])");
   
   var requestedFieldIds = request.fields.map(function(field) {
     return field.name;
@@ -137,6 +144,9 @@ function getData(request) {
   request.fields.forEach(function(field) {
     var rows = [];
     
+        if (field.name == 'pageName') {
+           outputData.page_name = nestedData['name'];
+        }
         if (field.name == 'pageViewsTotal') {
            outputData.page_views_total = nestedData['page_views_total'];
         }
@@ -169,7 +179,17 @@ function getData(request) {
   
   return result;  
 }
+
+// Report page name
+function reportPageName(report) {
+  var rows = [];
+    
+  var row = {};
+  row["pageName"] = report;
+  rows[0] = row;
   
+  return rows;
+}  
 
 // Report all daily reports to rows 
 function reportDaily(report, type) {
@@ -247,6 +267,9 @@ function reportToRows(requestedFields, report) {
   var rows = [];
   var data = [];  
   
+  if (typeof report.page_name !== 'undefined') {
+    data = data.concat(reportPageName(report.page_name));
+  }
   if (typeof report.page_views_total !== 'undefined') {
     data = data.concat(reportDaily(report.page_views_total, 'pageViewsTotal'));
   }

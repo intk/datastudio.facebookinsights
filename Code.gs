@@ -139,6 +139,17 @@ function getFields() {
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
   
+  fields.newDimension()
+      .setId('pageAudienceLanguage')
+      .setName('Language')
+      .setType(types.TEXT);
+  
+   fields.newMetric()
+      .setId('pageAudienceLanguageReach')
+      .setName('Reach per language')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
   return fields;
 }
 
@@ -150,7 +161,7 @@ function getSchema(request) {
 
 function getData(request) {   
   
-  var nestedData = graphData(request, "?fields=insights.metric(page_views_total, page_fan_adds_unique, page_posts_impressions_unique, page_post_engagements, page_fans_gender_age).period(day).since([dateSince]).until([dateUntil]),posts.fields(created_time, message, permalink_url, insights.metric(post_impressions_unique, post_clicks, post_reactions_by_type_total), comments.summary(true), shares).since([dateSince]).until([dateUntil])");
+  var nestedData = graphData(request, "?fields=insights.metric(page_views_total, page_fan_adds_unique, page_posts_impressions_unique, page_post_engagements, page_fans_gender_age, page_impressions_by_locale_unique).period(day).since([dateSince]).until([dateUntil]),posts.fields(created_time, message, permalink_url, insights.metric(post_impressions_unique, post_clicks, post_reactions_by_type_total), comments.summary(true), shares).since([dateSince]).until([dateUntil])");
   
   var requestedFieldIds = request.fields.map(function(field) {
     return field.name;
@@ -181,6 +192,9 @@ function getData(request) {
         }
         if (field.name == 'pageFansAge' || field.name == 'pageFansGender') {
           outputData.page_fans_gender_age = nestedData['page_fans_gender_age'];
+        }
+        if (field.name == 'pageAudienceLanguage') {
+          outputData.page_audience_language = nestedData['page_impressions_by_locale_unique'];
         }
     
         
@@ -234,11 +248,23 @@ function reportDaily(report, type) {
       if (type == 'pageFanAdds') {
         //Data is reported on day after. Actual date is end_time - 24 hours
         row['pageFanAddsDate'] = formatDate(new Date(new Date(report[c][i]['end_time']).getTime()-86400000));
-
+        rows.push(row);
       }
       
+      // Split page audience language and page audience language reach in separate metrics
+      if (type == 'pageAudienceLanguage') {
+         for (var property in report[c][i]['value']) {
+           var row = {};
+           row[type] = property.split("_")[0].toUpperCase();
+           row['pageAudienceLanguageReach'] = report[c][i]['value'][property];
+           rows.push(row);
+         }        
+      } else {
+        
       // Assign all data to rows list
       rows.push(row);
+      
+      }
     }
   }
 
@@ -402,6 +428,9 @@ function reportToRows(requestedFields, report) {
   }  
   if (typeof report.page_fans_gender_age !== 'undefined') {
     data = data.concat(reportGenderAge(report.page_fans_gender_age));
+  }  
+  if (typeof report.page_audience_language !== 'undefined') {
+    data = data.concat(reportDaily(report.page_audience_language, 'pageAudienceLanguage'));
   }  
   
   // Merge data

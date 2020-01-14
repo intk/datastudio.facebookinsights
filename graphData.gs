@@ -130,12 +130,12 @@ function graphData(request, query) {
     
     
     // Define properties
-    dataObj = {'page_fan_adds_unique':[], 
-               'page_views_total':[],
-               'page_posts_impressions_unique':[],
-               'page_post_engagements':[],
-               'page_fans_gender_age':[],
-               'page_fans_locale':[]};    
+    dataObj = {'page_fan_adds_unique':{}, 
+               'page_views_total':{},
+               'page_posts_impressions_unique':{},
+               'page_post_engagements':{},
+               'page_fans_gender_age':{},
+               'page_fans_locale':{}};    
     // Loop queryChunks
     for(var i = 0; i < queryChunks.length; i++) {
       
@@ -144,7 +144,7 @@ function graphData(request, query) {
       var dateRangeUntil = queryChunks[i]['until'].toISOString().slice(0, 10);
       
       //Replace all occurences of date range placeholders from query
-      query = query.replace(/\[dateSince\]/g, dateRangeSince).replace(/\[dateUntil\]/g, dateRangeUntil);
+      query = query.replace(/\[dateSince\]/g, dateRangeSince).replace(/\[dateUntil\]/g, dateRangeUntil).replace(/\[dateUntil\]/g, dateRangeUntil);
       
       // Perform API Request
       var requestUrl = requestEndpoint+query+"&access_token="+pageToken;
@@ -171,14 +171,11 @@ function graphData(request, query) {
                 
                 // Determine if property exists in data object
                 if (parseData[parsedObj]['data'][d]['name'] == property) {
+                  var dataPeriod = parseData[parsedObj]['data'][d]['period'];
+                  dataObj[property]['daysBetween'] = daysBetween;
+                  dataObj[property][dataPeriod] = [];
+                  dataObj[property][dataPeriod].push(parseData[parsedObj]['data'][d]['values']);
                   
-                  /*
-                  // Push values to right property
-                  var periodObj = {'period': parseData[parsedObj]['data'][d]['period'], 
-                                   'data': parseData[parsedObj]['data'][d]['values']
-                                  };
-                  */
-                  dataObj[property].push(parseData[parsedObj]['data'][d]['values']);
                 }
                 
               }

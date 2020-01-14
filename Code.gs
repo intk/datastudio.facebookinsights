@@ -36,14 +36,21 @@ function getFields() {
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
   
-  fields.newMetric()
+   fields.newMetric()
       .setId('pageFanAdds')
       .setName('Page Likes')
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
   
+  
+  fields.newMetric()
+      .setId('pageNewLikes')
+      .setName('New Likes')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
   fields.newDimension()
-      .setId('pageFanAddsDate')
+      .setId('pageNewLikesDate')
       .setName('New Likes Date')
       .setType(types.YEAR_MONTH_DAY);
   
@@ -161,7 +168,7 @@ function getSchema(request) {
 
 function getData(request) {   
   
-  var nestedData = graphData(request, "?fields=insights.metric(page_views_total, page_fan_adds_unique, page_posts_impressions_unique, page_post_engagements, page_fans_gender_age, page_fans_locale).period(day).since([dateSince]).until([dateUntil]),posts.fields(created_time, message, permalink_url, insights.metric(post_impressions_unique, post_clicks, post_reactions_by_type_total), comments.summary(true), shares).since([dateSince]).until([dateUntil])");
+  var nestedData = graphData(request, "?fields=insights.metric(page_views_total, page_fan_adds_unique, page_posts_impressions_unique, page_post_engagements, page_fans_gender_age, page_fans_locale).since([dateSince]).until([dateUntil]),posts.fields(created_time, message, permalink_url, insights.metric(post_impressions_unique, post_clicks, post_reactions_by_type_total), comments.summary(true), shares).since([dateSince]).until([dateUntil])");
   
   var requestedFieldIds = request.fields.map(function(field) {
     return field.name;
@@ -180,6 +187,9 @@ function getData(request) {
         }
         if (field.name == 'pageFanAdds') {
            outputData.page_fan_adds = nestedData['page_fan_adds_unique'];
+        }
+        if (field.name == 'pageNewLikes') {
+           outputData.page_new_likes = nestedData['page_fan_adds_unique'];
         }
         if (field.name == 'pagePostsReach') {
            outputData.page_posts_reach = nestedData['page_posts_impressions_unique'];
@@ -228,12 +238,36 @@ function formatDate(date) {
 
     return [year, month, day].join('');
 }
+
+//Exclude non-unique users from 7 or 28 days data
+function periodData(report) {
   
+  if (report.daysBetween == 27 && typeof report.days_28 !== 'undefined') {
+    report = report.days_28;
+    report[report.length-1] = report[report.length-1].slice(report[report.length-1].length-1);
+  }
+  else if (report.daysBetween == 6 && typeof report.week !== 'undefined') {
+    report = report.week;
+    report[report.length-1] = report[report.length-1].slice(report[report.length-1].length-1);
+    
+    // If date range is not 7 or 28 days
+  } else {
+    report = report.day;
+  }
+  return report;
+}
 
 // Report all daily reports to rows 
 function reportDaily(report, type) {
   var rows = [];
   
+  //Exclude non-unique users from 7 or 28 days data
+  if (type !== 'pageNewLikes') {
+    report = periodData(report);
+  } else {
+    report = report.day;
+  }
+    
   //Loop chunks
   for (var c = 0; c <  report.length; c++) {
   
@@ -244,45 +278,35 @@ function reportDaily(report, type) {
       var row = {};
       
       row[type] = report[c][i]['value'];
-      
-      if (type == 'pageFanAdds') {
+      if (type == 'pageNewLikes') {
         //Data is reported on day after. Actual date is end_time - 24 hours
-        row['pageFanAddsDate'] = formatDate(new Date(new Date(report[c][i]['end_time']).getTime()-86400000));
-        rows.push(row);
+        row['pageNewLikesDate'] = formatDate(new Date(new Date(report[c][i]['end_time']).getTime()-86400000));
       }
       
-      // Split page audience language and page audience language reach in separate metrics
-      else if (type == 'pageAudienceLanguage') {
-         for (var property in report[c][i]['value']) {
-           var row = {};
-           row[type] = property;
-           row['pageAudienceLanguageReach'] = report[c][i]['value'][property];
-           rows.push(row);
-         }        
-      } else {
-        
+      
       // Assign all data to rows list
       rows.push(row);
       
-      }
     }
   }
 
   return rows;
 }
 
+
 function reportPageFansLocale(report, type) {
   var rows = [];
+  report = report.day;
   
   var lastObject = report[report.length-1]
   var results = lastObject[lastObject.length-1]['value'];
   
-         for (var property in results) {
-           var row = {};
-           row[type] = property;
-           row['pageAudienceLanguageLikes'] = results[property];
-           rows.push(row);
-         }  
+  for (var property in results) {
+    var row = {};
+    row[type] = property;
+    row['pageAudienceLanguageLikes'] = results[property];
+    rows.push(row);
+  }  
    return rows;
 }
 
@@ -337,6 +361,8 @@ function reportPosts(report) {
 
 function reportGenderAge(report) {
   var rows = [];
+  report = report.day;
+  
   //Define fans per gender (female, male, unknown)
   var fans = {};
   fans['Female'] = 0;
@@ -431,6 +457,9 @@ function reportToRows(requestedFields, report) {
   }
   if (typeof report.page_fan_adds !== 'undefined') {
     data = data.concat(reportDaily(report.page_fan_adds, 'pageFanAdds'));
+  }   
+  if (typeof report.page_new_likes !== 'undefined') {
+    data = data.concat(reportDaily(report.page_new_likes, 'pageNewLikes'));
   }   
   if (typeof report.page_posts_reach !== 'undefined') {
     data = data.concat(reportDaily(report.page_posts_reach, 'pagePostsReach'));

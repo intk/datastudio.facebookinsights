@@ -135,7 +135,7 @@ function graphData(request, query) {
                'page_posts_impressions_unique':[],
                'page_post_engagements':[],
                'page_fans_gender_age':[],
-               'page_impressions_by_locale_unique':[]};    
+               'page_fans_locale':[]};    
     // Loop queryChunks
     for(var i = 0; i < queryChunks.length; i++) {
       
@@ -193,7 +193,7 @@ function graphData(request, query) {
     }
   }
   
-  //console.error(JSON.stringify(dataObj));
+  console.error(JSON.stringify(dataObj));
   
   
   return dataObj;

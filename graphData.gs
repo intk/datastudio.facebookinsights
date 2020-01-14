@@ -130,11 +130,10 @@ function graphData(request, query) {
     
     
     // Define properties
-    dataObj = {'page_fans':[],
-               'page_fan_adds_unique':[],
+    dataObj = {'page_fan_adds_unique':[], 
                'page_views_total':[],
                'page_posts_impressions_unique':[],
-               'page_post_engagements':[]};
+               'page_post_engagements':[]};    
     // Loop queryChunks
     for(var i = 0; i < queryChunks.length; i++) {
       
@@ -156,13 +155,9 @@ function graphData(request, query) {
       // Loop all nested objects in parseData object
       for (var parsedObj in parseData) {
         
-        // Determine if object is name of page
-        if (parsedObj == 'name') {
-          dataObj[parsedObj] = parseData[parsedObj];
-        }
-        
         // Determine if 'data' object exists in nested object
         if (typeof parseData[parsedObj]['data'] !== 'undefined' &&  parseData[parsedObj]['data'].length > 0) {
+          
           
           // Determine if nested object is a 'posts' object
           if (parsedObj == 'posts') {
@@ -196,7 +191,7 @@ function graphData(request, query) {
     }
   }
   
-  //console.error(JSON.stringify(dataObj));
+  console.error(JSON.stringify(dataObj));
   
   
   return dataObj;

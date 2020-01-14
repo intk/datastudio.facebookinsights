@@ -133,7 +133,8 @@ function graphData(request, query) {
     dataObj = {'page_fan_adds_unique':[], 
                'page_views_total':[],
                'page_posts_impressions_unique':[],
-               'page_post_engagements':[]};    
+               'page_post_engagements':[],
+               'page_fans_gender_age':[]};    
     // Loop queryChunks
     for(var i = 0; i < queryChunks.length; i++) {
       

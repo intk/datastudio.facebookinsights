@@ -117,6 +117,17 @@ function getFields() {
       .setAggregation(aggregations.SUM)
       .setFormula('$postReactions+$postComments+$postShares+$postClicks');
   
+  fields.newDimension()
+      .setId('pageFansGender')
+      .setName('Gender')
+      .setType(types.TEXT);
+  
+  fields.newMetric()
+      .setId('pageFansGenderNumber')
+      .setName('Likes per Gender')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
   return fields;
 }
 
@@ -128,7 +139,7 @@ function getSchema(request) {
 
 function getData(request) {   
   
-  var nestedData = graphData(request, "?fields=insights.metric(page_views_total, page_fan_adds_unique, page_posts_impressions_unique, page_post_engagements).period(day).since([dateSince]).until([dateUntil]),posts.fields(created_time, message, permalink_url, insights.metric(post_impressions_unique, post_clicks, post_reactions_by_type_total), comments.summary(true), shares).since([dateSince]).until([dateUntil])");
+  var nestedData = graphData(request, "?fields=insights.metric(page_views_total, page_fan_adds_unique, page_posts_impressions_unique, page_post_engagements, page_fans_gender_age).period(day).since([dateSince]).until([dateUntil]),posts.fields(created_time, message, permalink_url, insights.metric(post_impressions_unique, post_clicks, post_reactions_by_type_total), comments.summary(true), shares).since([dateSince]).until([dateUntil])");
   
   var requestedFieldIds = request.fields.map(function(field) {
     return field.name;
@@ -156,6 +167,9 @@ function getData(request) {
         }
         if (field.name == 'postDate' || field.name == 'postMessage' || field.name == 'postLink' || field.name == 'postReach' || field.name == 'postReactions') {
           outputData.posts = nestedData['posts'];
+        }
+        if (field.name == 'pageFansAge' || field.name == 'pageFansGender') {
+          outputData.page_fans_gender_age = nestedData['page_fans_gender_age'];
         }
     
         
@@ -269,6 +283,93 @@ function reportPosts(report) {
   return rows;
 }
 
+function reportGenderAge(report) {
+  var rows = [];
+  //Define fans per gender (female, male, unknown)
+  var fans = {};
+  fans['Female'] = 0;
+  fans['Male'] = 0;
+  fans['Unknown'] = 0;
+  
+  // Define fans per age
+  fans['13-17'] = 0;
+  fans['18-24'] = 0;
+  fans['25-34'] = 0;
+  fans['35-44'] = 0;
+  fans['45-54'] = 0;
+  fans['55-64'] = 0;
+  fans['65+'] = 0;
+  
+  // Only report last number of fans per gender/age within date range
+  // Get gender/age objects
+  var lastObject = report[report.length-1]
+  var results = lastObject[lastObject.length-1]['value'];
+  console.info(results);
+  
+  // Loop all objects
+  for (var property in results) {
+    if (results.hasOwnProperty(property)) {
+      
+      // Assign values to gender
+      switch (true) {
+        case (property.indexOf('F') > -1):
+        fans['Female'] += results[property];
+        break;
+        case (property.indexOf('M') > -1):
+        fans['Male'] += results[property];
+        break;
+        case (property.indexOf('U') > -1):
+        fans['Unknown'] += results[property];
+        break;
+      }
+      
+      // Assign values to age
+      switch (true) {
+        case (property.indexOf('13-17') > -1):
+          fans['13-17'] += results[property];
+          break;
+        case (property.indexOf('18-24') > -1):
+          fans['18-24'] += results[property];
+          break;
+        case (property.indexOf('25-34') > -1):
+          fans['25-34'] += results[property];
+          break;
+        case (property.indexOf('35-44') > -1):
+          fans['35-44'] += results[property];
+          break;
+        case (property.indexOf('45-54') > -1):
+          fans['45-54'] += results[property];
+          break;
+        case (property.indexOf('55-64') > -1):
+          fans['55-64'] += results[property];
+          break;
+        case (property.indexOf('65+') > -1):
+          fans['65+'] += results[property];
+          break;
+      }
+      
+    }
+  }
+  
+  for (var property in fans) {
+    var row = {};
+    if (fans.hasOwnProperty(property)) {
+      if (property.indexOf('Female') > -1 || property.indexOf('Male') > -1 || property.indexOf('Unknown') > -1) {
+        row['pageFansGender'] = property;
+        row['pageFansGenderNumber'] = fans[property];
+      } else { 
+        row['pageFansAge'] = property;
+        row['pageFansAgeNumber'] = fans[property];
+      }
+    }
+    rows.push(row);
+     
+   }
+    
+  return rows;
+  
+}
+
 function reportToRows(requestedFields, report) {
   var rows = [];
   var data = [];  
@@ -287,13 +388,20 @@ function reportToRows(requestedFields, report) {
   }
   if (typeof report.posts !== 'undefined') {
     data = data.concat(reportPosts(report.posts));
-  }   
+  }  
+  if (typeof report.page_fans_gender_age !== 'undefined') {
+    data = data.concat(reportGenderAge(report.page_fans_gender_age));
+  }  
   
   // Merge data
   for(var i = 0; i < data.length; i++) {
     row = [];    
     requestedFields.asArray().forEach(function (field) {
-      return row.push(data[i][field.getId()]);
+      
+      //When field is undefined, don't create empty row
+      if (typeof data[i][field.getId()] !== 'undefined') {
+        return row.push(data[i][field.getId()]);
+      }
       
     });
     if (row.length > 0) {

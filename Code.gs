@@ -128,6 +128,17 @@ function getFields() {
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
   
+  fields.newDimension()
+      .setId('pageFansAge')
+      .setName('Age')
+      .setType(types.TEXT);
+  
+   fields.newMetric()
+      .setId('pageFansAgeNumber')
+      .setName('Likes per Age')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
   return fields;
 }
 

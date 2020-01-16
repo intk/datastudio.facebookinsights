@@ -131,6 +131,7 @@ function graphData(request, query) {
     
     // Define properties
     dataObj = {'page_fan_adds_unique':{}, 
+               'page_fans':{},
                'page_views_total':{},
                'page_posts_impressions_unique':{},
                'page_post_engagements':{},
@@ -144,7 +145,7 @@ function graphData(request, query) {
       var dateRangeUntil = queryChunks[i]['until'].toISOString().slice(0, 10);
       
       //Replace all occurences of date range placeholders from query
-      query = query.replace(/\[dateSince\]/g, dateRangeSince).replace(/\[dateUntil\]/g, dateRangeUntil).replace(/\[dateUntil\]/g, dateRangeUntil);
+      query = query.replace(/\[dateSince\]/g, dateRangeSince).replace(/\[dateUntil\]/g, dateRangeUntil);
       
       // Perform API Request
       var requestUrl = requestEndpoint+query+"&access_token="+pageToken;

@@ -130,13 +130,8 @@ function graphData(request, query) {
     
     
     // Define properties
-    dataObj = {'page_fan_adds_unique':{}, 
-               'page_fans':{},
-               'page_views_total':{},
-               'page_posts_impressions_unique':{},
-               'page_post_engagements':{},
-               'page_fans_gender_age':{},
-               'page_fans_locale':{}};    
+    dataObj = {'page_fans':{},
+               'page_views_total':{}};    
     // Loop queryChunks
     for(var i = 0; i < queryChunks.length; i++) {
       
@@ -145,10 +140,10 @@ function graphData(request, query) {
       var dateRangeUntil = queryChunks[i]['until'].toISOString().slice(0, 10);
       
       //Replace all occurences of date range placeholders from query
-      query = query.replace(/\[dateSince\]/g, dateRangeSince).replace(/\[dateUntil\]/g, dateRangeUntil);
+      queryEnd = query.replace(/\[dateSince\]/g, dateRangeSince).replace(/\[dateUntil\]/g, dateRangeUntil);
       
       // Perform API Request
-      var requestUrl = requestEndpoint+query+"&access_token="+pageToken;
+      var requestUrl = requestEndpoint+queryEnd+"&access_token="+pageToken;
       
       console.log(requestUrl);
       
@@ -191,7 +186,7 @@ function graphData(request, query) {
     }
   }
   
-  console.error(JSON.stringify(dataObj));
+  //console.error(JSON.stringify(dataObj));
   
   
   return dataObj;

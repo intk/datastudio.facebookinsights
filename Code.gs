@@ -47,6 +47,28 @@ function getFields() {
       .setName('New Likes')
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
+  
+  fields.newDimension()
+      .setId('pageLikesGender')
+      .setName('Gender')
+      .setType(types.TEXT);
+
+  fields.newMetric()
+      .setId('pageLikesGenderNumber')
+      .setName('Likes per Gender')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
+  fields.newDimension()
+      .setId('pageLikesAge')
+      .setName('Age')
+      .setType(types.TEXT);
+
+  fields.newMetric()
+      .setId('pageLikesAgeNumber')
+      .setName('Likes per Age')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
 
   
   return fields;
@@ -60,7 +82,7 @@ function getSchema(request) {
 
 function getData(request) {   
   
-  var nestedData = graphData(request, "?fields=insights.metric(page_fans, page_views_total, page_fan_adds_unique).since([dateSince]).until([dateUntil])");
+  var nestedData = graphData(request, "?fields=insights.metric(page_fans, page_views_total, page_fan_adds, page_fans_gender_age).since([dateSince]).until([dateUntil])");
   
   var requestedFieldIds = request.fields.map(function(field) {
     return field.name;
@@ -81,7 +103,10 @@ function getData(request) {
            outputData.page_views_total = nestedData['page_views_total'];
         }
         if (field.name == 'pageNewLikes') {
-           outputData.page_new_likes = nestedData['page_fan_adds_unique'];
+           outputData.page_new_likes = nestedData['page_fan_adds'];
+        }
+        if (field.name == 'pageLikesAge' || field.name == 'pageLikesGender') {
+          outputData.page_likes_gender_age = nestedData['page_fans_gender_age'];
         }
         
         if (typeof outputData !== 'undefined') {    
@@ -100,44 +125,6 @@ function getData(request) {
   return result;  
 }
 
-// Total page likes is a cumulative number. Get the page likes on the last day of the date range.
-function reportPageLikesTotal(report, type) {
-  var rows = [];
-  report = report.day;
-  
-  var lastObject = report[report.length-1];
-  var row = {};
-  row[type] =  lastObject[lastObject.length-1]['value'];
-  
-  rows[0] = row;
-  return rows;
-}
-
-function reportMetric(report, type) {
-  var rows = [];
-  
-  report = report.day;
-    
-  //Loop chunks
-  for (var c = 0; c <  report.length; c++) {
-  
-    var valueRows = report[c];
-    
-    // Loop report
-    for (var i = 0; i < valueRows.length; i++) {
-      var row = {};
-      
-      row[type] = report[c][i]['value'];
-     
-      // Assign all data to rows list
-      rows.push(row);
-      
-    }
-  }
-
-  return rows;
-}
-
 
 function reportToRows(requestedFields, report) {
   var rows = [];
@@ -152,6 +139,9 @@ function reportToRows(requestedFields, report) {
   if (typeof report.page_new_likes !== 'undefined') {
     data = data.concat(reportMetric(report.page_new_likes, 'pageNewLikes'));
   }
+  if (typeof report.page_likes_gender_age !== 'undefined') {
+    data = data.concat(reportGenderAge(report.page_likes_gender_age));
+  }  
   
   // Merge data
   for(var i = 0; i < data.length; i++) {

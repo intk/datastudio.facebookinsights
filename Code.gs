@@ -41,6 +41,12 @@ function getFields() {
       .setName('Page Views')
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
+  
+  fields.newMetric()
+      .setId('pageNewLikes')
+      .setName('New Likes')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
 
   
   return fields;
@@ -54,7 +60,7 @@ function getSchema(request) {
 
 function getData(request) {   
   
-  var nestedData = graphData(request, "?fields=insights.metric(page_fans, page_views_total).since([dateSince]).until([dateUntil])");
+  var nestedData = graphData(request, "?fields=insights.metric(page_fans, page_views_total, page_fan_adds_unique).since([dateSince]).until([dateUntil])");
   
   var requestedFieldIds = request.fields.map(function(field) {
     return field.name;
@@ -73,6 +79,9 @@ function getData(request) {
         }
         if (field.name == 'pageViewsTotal') {
            outputData.page_views_total = nestedData['page_views_total'];
+        }
+        if (field.name == 'pageNewLikes') {
+           outputData.page_new_likes = nestedData['page_fan_adds_unique'];
         }
         
         if (typeof outputData !== 'undefined') {    
@@ -139,6 +148,9 @@ function reportToRows(requestedFields, report) {
   }
   if (typeof report.page_views_total !== 'undefined') {
     data = data.concat(reportMetric(report.page_views_total, 'pageViewsTotal'));
+  }
+  if (typeof report.page_new_likes !== 'undefined') {
+    data = data.concat(reportMetric(report.page_new_likes, 'pageNewLikes'));
   }
   
   // Merge data

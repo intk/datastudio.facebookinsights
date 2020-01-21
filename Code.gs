@@ -107,6 +107,12 @@ function getFields() {
       .setName('Reach on post')
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
+  
+  fields.newMetric()
+      .setId('pagePostsImpressions')
+      .setName('Posts Impressions')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
 
   
   return fields;
@@ -120,7 +126,7 @@ function getSchema(request) {
 
 function getData(request) {   
   
-  var nestedData = graphData(request, "?fields=insights.metric(page_fans, page_views_total, page_fan_adds, page_fans_gender_age, page_fans_locale).since([dateSince]).until([dateUntil]),posts.fields(created_time, message, permalink_url, insights.metric(post_impressions_unique)).since([dateSince]).until([dateUntil])");
+  var nestedData = graphData(request, "?fields=insights.metric(page_fans, page_views_total, page_fan_adds, page_fans_gender_age, page_fans_locale, page_posts_impressions).since([dateSince]).until([dateUntil]),posts.fields(created_time, message, permalink_url, insights.metric(post_impressions_unique)).since([dateSince]).until([dateUntil])");
   
   var requestedFieldIds = request.fields.map(function(field) {
     return field.name;
@@ -151,6 +157,9 @@ function getData(request) {
         }
         if (field.name == 'postDate') {
           outputData.posts = nestedData['posts'];
+        }
+        if (field.name == 'pagePostsImpressions') {
+          outputData.page_posts_impressions = nestedData['page_posts_impressions'];
         }
         
         if (typeof outputData !== 'undefined') {    
@@ -192,6 +201,9 @@ function reportToRows(requestedFields, report) {
   if (typeof report.posts !== 'undefined') {
     data = data.concat(reportPosts(report.posts));
   }  
+  if (typeof report.page_posts_impressions !== 'undefined') {
+    data = data.concat(reportMetric(report.page_posts_impressions, 'pagePostsImpressions'));
+  }
   
   // Merge data
   for(var i = 0; i < data.length; i++) {

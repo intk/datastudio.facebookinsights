@@ -80,6 +80,33 @@ function getFields() {
       .setName('Likes per language')
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
+  
+  fields.newDimension()
+      .setId('postDate')
+      .setName('Post Date')
+      .setType(types.YEAR_MONTH_DAY);
+  
+  fields.newDimension()
+      .setId('postMessage')
+      .setName('Post Message')
+      .setType(types.TEXT);  
+  
+  fields.newDimension()
+      .setId('postLink')
+      .setName('Link to post')
+      .setType(types.URL);
+  
+  fields.newDimension()
+       .setId('postMessageHyperLink')
+       .setName('Post Message Link')
+       .setType(types.HYPERLINK)
+       .setFormula('HYPERLINK($postLink,$postMessage)');
+  
+  fields.newMetric()
+      .setId('postReach')
+      .setName('Reach on post')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
 
   
   return fields;
@@ -93,7 +120,7 @@ function getSchema(request) {
 
 function getData(request) {   
   
-  var nestedData = graphData(request, "?fields=insights.metric(page_fans, page_views_total, page_fan_adds, page_fans_gender_age, page_fans_locale).since([dateSince]).until([dateUntil])");
+  var nestedData = graphData(request, "?fields=insights.metric(page_fans, page_views_total, page_fan_adds, page_fans_gender_age, page_fans_locale).since([dateSince]).until([dateUntil]),posts.fields(created_time, message, permalink_url, insights.metric(post_impressions_unique)).since([dateSince]).until([dateUntil])");
   
   var requestedFieldIds = request.fields.map(function(field) {
     return field.name;
@@ -121,6 +148,9 @@ function getData(request) {
         }
         if (field.name == 'pageAudienceLanguage') {
           outputData.page_audience_language = nestedData['page_fans_locale'];
+        }
+        if (field.name == 'postDate') {
+          outputData.posts = nestedData['posts'];
         }
         
         if (typeof outputData !== 'undefined') {    
@@ -158,6 +188,9 @@ function reportToRows(requestedFields, report) {
   }  
   if (typeof report.page_audience_language !== 'undefined') {
     data = data.concat(reportPageLikesLocale(report.page_audience_language, 'pageAudienceLanguage'));
+  }  
+  if (typeof report.posts !== 'undefined') {
+    data = data.concat(reportPosts(report.posts));
   }  
   
   // Merge data

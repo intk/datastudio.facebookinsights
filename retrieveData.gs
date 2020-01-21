@@ -140,3 +140,35 @@ function reportPageLikesLocale(report, type) {
          }  
    return rows;
 }
+
+// Report posts to rows
+function reportPosts(report) {  
+  var rows = [];
+  
+  // Only loop object when it contains data
+  if (typeof report.data !== 'undefined' && report.data.length > 0) {
+  
+    // Loop posts
+    for( var i = 0; i < report.data.length; i++) {
+      
+      // Exclude events without message
+      if (typeof report.data[i]['message'] !== 'undefined') {
+      
+        // Define empty row object
+        var row = {};
+        
+        //Return date object to ISO formatted string
+        row["postDate"] = new Date(report.data[i]['created_time']).toISOString().slice(0, 10);
+        
+        row["postMessage"] = report.data[i]['message'] || report.data[i]['story'];
+        row["postLink"] = report.data[i]['permalink_url'];
+        row["postReach"] = report.data[i].insights.data[0].values[0]['value'];
+        
+        // Assign all post data to rows list
+        rows.push(row);
+      }
+    }
+  }
+  
+  return rows;
+}

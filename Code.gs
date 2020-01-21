@@ -69,6 +69,17 @@ function getFields() {
       .setName('Likes per Age')
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
+  
+  fields.newDimension()
+      .setId('pageAudienceLanguage')
+      .setName('Language')
+      .setType(types.TEXT);
+  
+   fields.newMetric()
+      .setId('pageAudienceLanguageLikes')
+      .setName('Likes per language')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
 
   
   return fields;
@@ -82,7 +93,7 @@ function getSchema(request) {
 
 function getData(request) {   
   
-  var nestedData = graphData(request, "?fields=insights.metric(page_fans, page_views_total, page_fan_adds, page_fans_gender_age).since([dateSince]).until([dateUntil])");
+  var nestedData = graphData(request, "?fields=insights.metric(page_fans, page_views_total, page_fan_adds, page_fans_gender_age, page_fans_locale).since([dateSince]).until([dateUntil])");
   
   var requestedFieldIds = request.fields.map(function(field) {
     return field.name;
@@ -107,6 +118,9 @@ function getData(request) {
         }
         if (field.name == 'pageLikesAge' || field.name == 'pageLikesGender') {
           outputData.page_likes_gender_age = nestedData['page_fans_gender_age'];
+        }
+        if (field.name == 'pageAudienceLanguage') {
+          outputData.page_audience_language = nestedData['page_fans_locale'];
         }
         
         if (typeof outputData !== 'undefined') {    
@@ -141,6 +155,9 @@ function reportToRows(requestedFields, report) {
   }
   if (typeof report.page_likes_gender_age !== 'undefined') {
     data = data.concat(reportGenderAge(report.page_likes_gender_age));
+  }  
+  if (typeof report.page_audience_language !== 'undefined') {
+    data = data.concat(reportPageLikesLocale(report.page_audience_language, 'pageAudienceLanguage'));
   }  
   
   // Merge data

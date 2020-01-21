@@ -123,3 +123,20 @@ function reportGenderAge(report) {
   return rows;
 
 }
+
+//Report language of page fnas
+function reportPageLikesLocale(report, type) {
+  var rows = [];
+  report = report.day;
+  
+  var lastObject = report[report.length-1]
+  var results = lastObject[lastObject.length-1]['value'];
+  
+         for (var property in results) {
+           var row = {};
+           row[type] = property;
+           row['pageAudienceLanguageLikes'] = results[property];
+           rows.push(row);
+         }  
+   return rows;
+}

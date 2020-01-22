@@ -136,7 +136,8 @@ function graphData(request, query) {
                'page_fans_gender_age':{},
                'page_fans_locale':{},
                'page_posts_impressions':{},
-               'page_post_engagements':{}}; 
+               'page_post_engagements':{},
+               'page_fans_by_like_source':{}}; 
     
     // Loop queryChunks
     for(var i = 0; i < queryChunks.length; i++) {

@@ -132,12 +132,28 @@ function reportPageLikesLocale(report, type) {
   var lastObject = report[report.length-1]
   var results = lastObject[lastObject.length-1]['value'];
   
+  if (type == 'pageAudienceLanguage') {
+  
          for (var property in results) {
            var row = {};
            row[type] = property;
            row['pageAudienceLanguageLikes'] = results[property];
+           
            rows.push(row);
          }  
+  } else {
+  
+         for (var property in results) {
+           var row = {};
+           
+           //Merge language data for second table
+           row['pageAudienceLanguageMerged'] = property.split("_")[0].toUpperCase();
+           row['pageAudienceLanguageLikesMerged'] = results[property];
+           
+           
+           rows.push(row);
+         }  
+  }
    return rows;
 }
 

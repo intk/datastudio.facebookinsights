@@ -75,9 +75,20 @@ function getFields() {
       .setName('Language')
       .setType(types.TEXT);
   
-   fields.newMetric()
+  fields.newMetric()
       .setId('pageAudienceLanguageLikes')
       .setName('Likes per language')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
+  fields.newDimension()
+      .setId('pageAudienceLanguageMerged')
+      .setName('Language (merged)')
+      .setType(types.TEXT);
+  
+  fields.newMetric()
+      .setId('pageAudienceLanguageLikesMerged')
+      .setName('Likes per language (merged)')
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
   
@@ -155,6 +166,9 @@ function getData(request) {
         if (field.name == 'pageAudienceLanguage') {
           outputData.page_audience_language = nestedData['page_fans_locale'];
         }
+        if (field.name == 'pageAudienceLanguageMerged') {
+          outputData.page_audience_language_merged = nestedData['page_fans_locale'];
+        }
         if (field.name == 'postDate') {
           outputData.posts = nestedData['posts'];
         }
@@ -197,6 +211,9 @@ function reportToRows(requestedFields, report) {
   }  
   if (typeof report.page_audience_language !== 'undefined') {
     data = data.concat(reportPageLikesLocale(report.page_audience_language, 'pageAudienceLanguage'));
+  }  
+  if (typeof report.page_audience_language_merged !== 'undefined') {
+    data = data.concat(reportPageLikesLocale(report.page_audience_language_merged, 'pageAudienceLanguageMerged'));
   }  
   if (typeof report.posts !== 'undefined') {
     data = data.concat(reportPosts(report.posts));

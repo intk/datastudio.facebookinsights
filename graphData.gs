@@ -140,6 +140,7 @@ function graphData(request, query) {
                'page_fans_by_like_source':{}}; 
     
     // Loop queryChunks
+    console.log("QUERYCHUNKS: "+queryChunks.length);
     for(var i = 0; i < queryChunks.length; i++) {
       
       // Set date range parameters
@@ -176,7 +177,10 @@ function graphData(request, query) {
                 if (parseData[parsedObj]['data'][d]['name'] == property) {
                   var dataPeriod = parseData[parsedObj]['data'][d]['period'];
                   dataObj[property]['daysBetween'] = daysBetween;
-                  dataObj[property][dataPeriod] = [];
+                  // Declare data object when it does not exist
+                  if (typeof dataObj[property][dataPeriod] === 'undefined') {
+                    dataObj[property][dataPeriod] = [];
+                  }
                   dataObj[property][dataPeriod].push(parseData[parsedObj]['data'][d]['values']);
                   
                 }

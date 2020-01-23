@@ -15,6 +15,8 @@ function reportMetric(report, type) {
   var rows = [];
   
   report = report.day;
+  
+  console.log(JSON.stringify(report));
     
   //Loop chunks
   for (var c = 0; c <  report.length; c++) {
@@ -26,6 +28,10 @@ function reportMetric(report, type) {
       var row = {};
       
       row[type] = report[c][i]['value'];
+      if (type == 'pageNewLikes') {
+        //Data is reported on day after. Actual date is end_time - 24 hours. Change date format from YYYY-MM-DD to YYYYMMDD
+        row['pageNewLikesDate'] = new Date(new Date(report[c][i]['end_time']).getTime()-86400000).toISOString().slice(0, 10).replace(/-/g, '');
+      }
      
       // Assign all data to rows list
       rows.push(row);
@@ -142,10 +148,9 @@ function reportPageLikesLocale(report, type) {
    return rows;
 }
 
-//Report language of page fnas
+//Report page likes by source
 function reportPageLikesSource(report, type) {
   
-  console.error(JSON.stringify(report));
   var rows = [];
   report = report.day;
   
@@ -188,7 +193,8 @@ function reportPosts(report) {
         
         row["postMessage"] = report.data[i]['message'] || report.data[i]['story'];
         row["postLink"] = report.data[i]['permalink_url'];
-        row["postReach"] = report.data[i].insights.data[0].values[0]['value'];
+        row["postImpressions"] = report.data[i].insights.data[0].values[0]['value'];
+        row["postEngagement"] = report.data[i].insights.data[1].values[0]['value'];
         
         // Assign all post data to rows list
         rows.push(row);

@@ -49,6 +49,11 @@ function getFields() {
       .setAggregation(aggregations.SUM);
   
   fields.newDimension()
+      .setId('pageNewLikesDate')
+      .setName('New Likes Date')
+      .setType(types.YEAR_MONTH);
+  
+  fields.newDimension()
       .setId('pageLikesGender')
       .setName('Gender')
       .setType(types.TEXT);
@@ -114,8 +119,14 @@ function getFields() {
        .setFormula('HYPERLINK($postLink,$postMessage)');
   
   fields.newMetric()
-      .setId('postReach')
-      .setName('Reach on post')
+      .setId('postImpressions')
+      .setName('Impressions')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
+  fields.newMetric()
+      .setId('postEngagement')
+      .setName('Engagement')
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
   
@@ -143,7 +154,7 @@ function getSchema(request) {
 
 function getData(request) {   
   
-  var nestedData = graphData(request, "?fields=insights.metric(page_fans, page_views_total, page_fan_adds, page_fans_gender_age, page_fans_locale, page_posts_impressions, page_post_engagements, page_fans_by_like_source).since([dateSince]).until([dateUntil]),posts.fields(created_time, message, permalink_url, insights.metric(post_impressions_unique)).since([dateSince]).until([dateUntil])");
+  var nestedData = graphData(request, "?fields=insights.metric(page_fans, page_views_total, page_fan_adds, page_fans_gender_age, page_fans_locale, page_posts_impressions, page_post_engagements, page_fans_by_like_source).since([dateSince]).until([dateUntil]),posts.fields(created_time, message, permalink_url, insights.metric(post_impressions, post_engaged_users)).since([dateSince]).until([dateUntil])");
   
   var requestedFieldIds = request.fields.map(function(field) {
     return field.name;

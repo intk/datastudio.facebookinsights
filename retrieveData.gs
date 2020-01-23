@@ -29,8 +29,8 @@ function reportMetric(report, type) {
       
       row[type] = report[c][i]['value'];
       if (type == 'pageNewLikes') {
-        //Data is reported on day after. Actual date is end_time - 24 hours. Change date format from YYYY-MM-DD to YYYYMMDD
-        row['pageNewLikesDate'] = new Date(new Date(report[c][i]['end_time']).getTime()-86400000).toISOString().slice(0, 10).replace(/-/g, '');
+        //Data is reported on day after. Actual date is end_time - 24 hours. Change date format to Month (from YYYY-MM-DD to MM)
+        row['pageNewLikesMonth'] = new Date(new Date(report[c][i]['end_time']).getTime()-86400000).toISOString().slice(4, 7).replace(/-/g, '');
       }
      
       // Assign all data to rows list

@@ -49,9 +49,9 @@ function getFields() {
       .setAggregation(aggregations.SUM);
   
   fields.newDimension()
-      .setId('pageNewLikesDate')
-      .setName('New Likes Date')
-      .setType(types.YEAR_MONTH);
+      .setId('pageNewLikesMonth')
+      .setName('New Likes Month')
+      .setType(types.MONTH);
   
   fields.newDimension()
       .setId('pageLikesGender')

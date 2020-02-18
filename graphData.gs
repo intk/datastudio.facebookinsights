@@ -7,10 +7,14 @@ function getGraphData(url) {
     return response;
 
   } catch (e) {
+<<<<<<< HEAD
     // If it fails, it's likely because we've hit the rate limit for UrlFetchApp.
     // Sleep for one second before making another request.
     Utilities.sleep(1000);
 
+=======
+    Utilities.sleep(1000);
+>>>>>>> dev
     var response = UrlFetchApp.fetch(url, { muteHttpExceptions: true});
     return response;
   }
@@ -125,6 +129,7 @@ function graphData(request, query) {
     // Perform API Request
     var requestUrl = requestEndpoint+query+"&access_token="+pageToken;
     
+<<<<<<< HEAD
     //console.log(requestUrl);
     
     //Parse data
@@ -149,10 +154,17 @@ function graphData(request, query) {
         
     
   // All other objects  
+=======
+    console.log(requestUrl);
+    
+    //Parse data
+    dataObj = JSON.parse(getGraphData(requestUrl));
+>>>>>>> dev
   } else {
     
     
     // Define properties
+<<<<<<< HEAD
     dataObj = {'page_fans':[], 
                'page_impressions':[], 
                'page_impressions_organic':[], 
@@ -165,12 +177,26 @@ function graphData(request, query) {
                'page_negative_feedback':[]};
     
     // Loop queryChunks
+=======
+    dataObj = {'page_fans':{},
+               'page_views_total':{},
+               'page_fan_adds':{},
+               'page_fans_gender_age':{},
+               'page_fans_locale':{},
+               'page_posts_impressions':{},
+               'page_post_engagements':{},
+               'page_fans_by_like_source':{}}; 
+    
+    // Loop queryChunks
+    console.log("QUERYCHUNKS: "+queryChunks.length);
+>>>>>>> dev
     for(var i = 0; i < queryChunks.length; i++) {
       
       // Set date range parameters
       var dateRangeSince = queryChunks[i]['since'].toISOString().slice(0, 10);
       var dateRangeUntil = queryChunks[i]['until'].toISOString().slice(0, 10);
       
+<<<<<<< HEAD
       
       var dateRange = "&since="+dateRangeSince+"&until="+dateRangeUntil;
       
@@ -180,10 +206,23 @@ function graphData(request, query) {
       var requestUrl = requestEndpoint+query+dateRange+"&access_token="+pageToken;
       
       //console.log(requestUrl);
+=======
+      var dateRangePostsUntil = new Date(queryChunks[i]['until'].getTime()-86400000).toISOString().slice(0, 10);
+      
+      //Replace all occurences of date range placeholders from query
+      queryEnd = query.replace(/\[dateSince\]/g, dateRangeSince).replace(/\[dateUntil\]/g, dateRangeUntil).replace(/\[datePostsUntil\]/g, dateRangePostsUntil);
+      
+      
+      // Perform API Request
+      var requestUrl = requestEndpoint+queryEnd+"&access_token="+pageToken;
+      
+      console.log(requestUrl);
+>>>>>>> dev
       
       // Parse data
       var parseData = JSON.parse(getGraphData(requestUrl));
       
+<<<<<<< HEAD
                   
       // Loop 'data' object from response
        if (parseData['data'].length > 0) {
@@ -205,12 +244,57 @@ function graphData(request, query) {
           }
         
        }
+=======
+      // Loop all nested objects in parseData object
+      for (var parsedObj in parseData) {
+        
+        // Determine if 'data' object exists in nested object
+        if (typeof parseData[parsedObj]['data'] !== 'undefined' &&  parseData[parsedObj]['data'].length > 0) {
+          
+          
+          // Determine if nested object is a 'posts' object
+          if (parsedObj == 'posts') {
+            dataObj[parsedObj] = parseData[parsedObj];
+          } else {
+            
+            for(var d = 0; d < parseData[parsedObj]['data'].length; d++) {
+              for (var property in dataObj) {
+                
+                // Determine if property exists in data object
+                if (parseData[parsedObj]['data'][d]['name'] == property) {
+                  var dataPeriod = parseData[parsedObj]['data'][d]['period'];
+                  dataObj[property]['daysBetween'] = daysBetween;
+                  // Declare data object when it does not exist
+                  if (typeof dataObj[property][dataPeriod] === 'undefined') {
+                    dataObj[property][dataPeriod] = [];
+                  }
+                  dataObj[property][dataPeriod].push(parseData[parsedObj]['data'][d]['values']);
+                  
+                }
+                
+              }
+              
+            }
+          }
+          
+        }
+        
+      }
+>>>>>>> dev
       
     }
   }
   
+<<<<<<< HEAD
   //console.log(JSON.stringify(dataObj));
   
   
   return dataObj;
 }
+=======
+  //console.error(JSON.stringify(dataObj));
+  
+  
+  return dataObj;
+}
+>>>>>>> dev

@@ -30,6 +30,7 @@ function getFields() {
   var types = cc.FieldType;
   var aggregations = cc.AggregationType; 
   
+<<<<<<< HEAD
   fields.newDimension()
       .setId('pageName')
       .setName('Page Name')
@@ -49,16 +50,27 @@ function getFields() {
   fields.newMetric()
       .setId('pageFansAdds')
       .setName('New Fans')
+=======
+  fields.newMetric()
+      .setId('pageLikesTotal')
+      .setName('Total Page Likes')
+>>>>>>> dev
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
   
   fields.newMetric()
+<<<<<<< HEAD
       .setId('pageImpressionsTotal')
       .setName('Total Impressions')
+=======
+      .setId('pageViewsTotal')
+      .setName('Page Views')
+>>>>>>> dev
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
   
   fields.newMetric()
+<<<<<<< HEAD
       .setId('pageImpressionsOrganic')
       .setName('Organic Impressions')
       .setType(types.NUMBER)
@@ -84,10 +96,42 @@ function getFields() {
    fields.newMetric()
       .setId('pageFansAgeNumber')
       .setName('Fans per Age')
+=======
+      .setId('pageNewLikes')
+      .setName('New Likes')
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
   
   fields.newDimension()
+      .setId('pageNewLikesMonth')
+      .setName('New Likes Month')
+      .setType(types.MONTH);
+  
+  fields.newDimension()
+      .setId('pageLikesGender')
+      .setName('Gender')
+      .setType(types.TEXT);
+
+  fields.newMetric()
+      .setId('pageLikesGenderNumber')
+      .setName('Likes per Gender')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
+  fields.newDimension()
+      .setId('pageLikesAge')
+      .setName('Age')
+      .setType(types.TEXT);
+
+  fields.newMetric()
+      .setId('pageLikesAgeNumber')
+      .setName('Likes per Age')
+>>>>>>> dev
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
+  fields.newDimension()
+<<<<<<< HEAD
       .setId('pageFansGender')
       .setName('Gender')
       .setType(types.TEXT);
@@ -113,6 +157,26 @@ function getFields() {
   fields.newMetric()
       .setId('pageNegativeFeedback')
       .setName('Negative Actions')
+=======
+      .setId('pageAudienceLanguage')
+      .setName('Language')
+      .setType(types.TEXT);
+  
+  fields.newMetric()
+      .setId('pageAudienceLanguageLikes')
+      .setName('Likes per language')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
+  fields.newDimension()
+      .setId('pageLikesSource')
+      .setName('Source of Likes')
+      .setType(types.TEXT);
+  
+  fields.newMetric()
+      .setId('pageLikesSourceNumber')
+      .setName('Likes by Source')
+>>>>>>> dev
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
   
@@ -122,6 +186,7 @@ function getFields() {
       .setType(types.YEAR_MONTH_DAY);
   
   fields.newDimension()
+<<<<<<< HEAD
       .setId('postId')
       .setName('Post ID')
       .setType(types.TEXT);  
@@ -131,6 +196,12 @@ function getFields() {
       .setName('Post Message')
       .setType(types.TEXT);  
 
+=======
+      .setId('postMessage')
+      .setName('Post Message')
+      .setType(types.TEXT);  
+  
+>>>>>>> dev
   fields.newDimension()
       .setId('postLink')
       .setName('Link to post')
@@ -143,18 +214,29 @@ function getFields() {
        .setFormula('HYPERLINK($postLink,$postMessage)');
   
   fields.newMetric()
+<<<<<<< HEAD
       .setId('postLikes')
       .setName('Likes on post')
+=======
+      .setId('postImpressions')
+      .setName('Impressions')
+>>>>>>> dev
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
   
   fields.newMetric()
+<<<<<<< HEAD
       .setId('postComments')
       .setName('Comments on post')
+=======
+      .setId('postEngagement')
+      .setName('Engagement')
+>>>>>>> dev
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
   
   fields.newMetric()
+<<<<<<< HEAD
       .setId('postShares')
       .setName('Shares on post')
       .setType(types.NUMBER)
@@ -163,6 +245,25 @@ function getFields() {
   
   
     
+=======
+      .setId('pagePostsImpressions')
+      .setName('Total Impressions')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
+  fields.newMetric()
+      .setId('pagePostsEngagement')
+      .setName('Total Engagement')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
+  fields.newDimension()
+      .setId('pagePostsEngagementMonth')
+      .setName('Total Engagement Month')
+      .setType(types.MONTH);
+
+  
+>>>>>>> dev
   return fields;
 }
 
@@ -174,8 +275,12 @@ function getSchema(request) {
 
 function getData(request) {   
   
+<<<<<<< HEAD
   var nestedData = graphData(request, "insights/?metric=['page_fans', 'page_impressions', 'page_impressions_organic', 'page_impressions_paid', 'page_impressions_viral', 'page_fans_gender_age', 'page_fan_adds', 'page_consumptions', 'page_positive_feedback_by_type', 'page_negative_feedback']&period=day");
   var postsData =  graphData(request, "posts?time_increment=1&fields=message,story,created_time,permalink_url,likes.summary(true),comments.summary(true),shares");
+=======
+  var nestedData = graphData(request, "?fields=insights.metric(page_fans, page_views_total, page_fan_adds, page_fans_gender_age, page_fans_locale, page_posts_impressions, page_post_engagements, page_fans_by_like_source).since([dateSince]).until([dateUntil]),posts.fields(created_time, message, permalink_url, insights.metric(post_impressions, post_engaged_users)).since([dateSince]).until([datePostsUntil])");
+>>>>>>> dev
   
   var requestedFieldIds = request.fields.map(function(field) {
     return field.name;
@@ -189,6 +294,7 @@ function getData(request) {
   request.fields.forEach(function(field) {
     var rows = [];
     
+<<<<<<< HEAD
     // Try to re-assign data when it fails at first attempt, until rows are filled in
       //while (rows.length < 1) {
         if (field.name == 'pageName') {
@@ -226,6 +332,34 @@ function getData(request) {
         }
         if (field.name == 'postId' || field.name == 'postDate' || field.name == 'postMessage' || field.name == 'postLink' || field.name == 'postLikes' || field.name == 'postComments' || field.name == 'postShares') {
           outputData.posts = postsData;
+=======
+        if (field.name == 'pageLikesTotal') {
+           outputData.page_likes_total = nestedData['page_fans'];
+        }
+        if (field.name == 'pageViewsTotal') {
+           outputData.page_views_total = nestedData['page_views_total'];
+        }
+        if (field.name == 'pageNewLikes') {
+           outputData.page_new_likes = nestedData['page_fan_adds'];
+        }
+        if (field.name == 'pageLikesAge' || field.name == 'pageLikesGender') {
+          outputData.page_likes_gender_age = nestedData['page_fans_gender_age'];
+        }
+        if (field.name == 'pageAudienceLanguage') {
+          outputData.page_audience_language = nestedData['page_fans_locale'];
+        }
+        if (field.name == 'postDate') {
+          outputData.posts = nestedData['posts'];
+        }
+        if (field.name == 'pagePostsImpressions') {
+          outputData.page_posts_impressions = nestedData['page_posts_impressions'];
+        }
+        if (field.name == 'pagePostsEngagement') {
+          outputData.page_posts_engagement = nestedData['page_post_engagements'];
+        }
+        if (field.name == 'pageLikesSource') {
+          outputData.page_likes_source = nestedData['page_fans_by_like_source'];
+>>>>>>> dev
         }
         
         if (typeof outputData !== 'undefined') {    
@@ -241,6 +375,7 @@ function getData(request) {
     
   });
   
+<<<<<<< HEAD
   //cache.put(request_hash, JSON.stringify(result));
   return result;  
 }
@@ -501,11 +636,17 @@ function reportPositiveFeedback(report, type) {
   
   return rows;
 }
+=======
+  return result;  
+}
+
+>>>>>>> dev
 
 function reportToRows(requestedFields, report) {
   var rows = [];
   var data = [];  
   
+<<<<<<< HEAD
   if (typeof report.page_name !== 'undefined') {
     data = reportPageName(report.page_name);
   }
@@ -542,12 +683,42 @@ function reportToRows(requestedFields, report) {
   if (typeof report.posts !== 'undefined') {
     data = reportPosts(report.posts) || [];
   } 
+=======
+  if (typeof report.page_likes_total !== 'undefined') {
+    data = data.concat(reportPageLikesTotal(report.page_likes_total, 'pageLikesTotal'));
+  }
+  if (typeof report.page_views_total !== 'undefined') {
+    data = data.concat(reportMetric(report.page_views_total, 'pageViewsTotal'));
+  }
+  if (typeof report.page_new_likes !== 'undefined') {
+    data = data.concat(reportMetric(report.page_new_likes, 'pageNewLikes'));
+  }
+  if (typeof report.page_likes_gender_age !== 'undefined') {
+    data = data.concat(reportGenderAge(report.page_likes_gender_age));
+  }  
+  if (typeof report.page_audience_language !== 'undefined') {
+    data = data.concat(reportPageLikesLocale(report.page_audience_language, 'pageAudienceLanguage'));
+  }  
+  if (typeof report.posts !== 'undefined') {
+    data = data.concat(reportPosts(report.posts));
+  }  
+  if (typeof report.page_posts_impressions !== 'undefined') {
+    data = data.concat(reportMetric(report.page_posts_impressions, 'pagePostsImpressions'));
+  }
+  if (typeof report.page_posts_engagement !== 'undefined') {
+    data = data.concat(reportMetric(report.page_posts_engagement, 'pagePostsEngagement'));
+  }
+  if (typeof report.page_likes_source !== 'undefined') {
+    data = data.concat(reportPageLikesSource(report.page_likes_source, 'pageLikesSource'));
+  }
+>>>>>>> dev
   
   // Merge data
   for(var i = 0; i < data.length; i++) {
     row = [];    
     requestedFields.asArray().forEach(function (field) {
       
+<<<<<<< HEAD
       // Assign post data values to rows
       if (field.getId().indexOf('post') > -1 && typeof data[i]["postDate"] !== 'undefined') {
         //console.log("ReportToRows_Posts: %s", data[i]["postDate"]);
@@ -606,6 +777,11 @@ function reportToRows(requestedFields, report) {
              }
 
          }
+=======
+      //When field is undefined, don't create empty row
+      if (typeof data[i][field.getId()] !== 'undefined') {
+        return row.push(data[i][field.getId()]);
+>>>>>>> dev
       }
       
     });
@@ -667,5 +843,9 @@ function get3PAuthorizationUrls() {
   return getOAuthService().getAuthorizationUrl();
 }
 
+<<<<<<< HEAD
 /**** END: OAuth Methods ****/
 
+=======
+/**** END: OAuth Methods ****/
+>>>>>>> dev

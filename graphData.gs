@@ -7,7 +7,7 @@ function getGraphData(url) {
     return response;
 
   } catch (e) {
-    
+    Utilities.sleep(1000);
     var response = UrlFetchApp.fetch(url, { muteHttpExceptions: true});
     return response;
   }
@@ -147,8 +147,11 @@ function graphData(request, query) {
       var dateRangeSince = queryChunks[i]['since'].toISOString().slice(0, 10);
       var dateRangeUntil = queryChunks[i]['until'].toISOString().slice(0, 10);
       
+      var dateRangePostsUntil = new Date(queryChunks[i]['until'].getTime()-86400000).toISOString().slice(0, 10);
+      
       //Replace all occurences of date range placeholders from query
-      queryEnd = query.replace(/\[dateSince\]/g, dateRangeSince).replace(/\[dateUntil\]/g, dateRangeUntil);
+      queryEnd = query.replace(/\[dateSince\]/g, dateRangeSince).replace(/\[dateUntil\]/g, dateRangeUntil).replace(/\[datePostsUntil\]/g, dateRangePostsUntil);
+      
       
       // Perform API Request
       var requestUrl = requestEndpoint+queryEnd+"&access_token="+pageToken;

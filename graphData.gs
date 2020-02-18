@@ -7,14 +7,7 @@ function getGraphData(url) {
     return response;
 
   } catch (e) {
-<<<<<<< HEAD
-    // If it fails, it's likely because we've hit the rate limit for UrlFetchApp.
-    // Sleep for one second before making another request.
     Utilities.sleep(1000);
-
-=======
-    Utilities.sleep(1000);
->>>>>>> dev
     var response = UrlFetchApp.fetch(url, { muteHttpExceptions: true});
     return response;
   }
@@ -129,55 +122,14 @@ function graphData(request, query) {
     // Perform API Request
     var requestUrl = requestEndpoint+query+"&access_token="+pageToken;
     
-<<<<<<< HEAD
-    //console.log(requestUrl);
-    
-    //Parse data
-    dataObj = JSON.parse(getGraphData(requestUrl));
-  }
-
-  // If posts object
-  else if (query.indexOf('posts') > -1) {
-    // Set date range parameters
-    var dateRangeSince = queryChunks[0]['since'].toISOString().slice(0, 10);
-    var dateRangeUntil = queryChunks[queryChunks.length-1]['until'].toISOString().slice(0, 10);
-    
-    var dateRange = "&since="+dateRangeSince+"&until="+dateRangeUntil;
-        
-    // Perform API Request
-    var requestUrl = requestEndpoint+query+dateRange+"&access_token="+pageToken;
-    
-    //console.log(requestUrl);
-    
-    // Parse data
-    dataObj = JSON.parse(getGraphData(requestUrl));
-        
-    
-  // All other objects  
-=======
     console.log(requestUrl);
     
     //Parse data
     dataObj = JSON.parse(getGraphData(requestUrl));
->>>>>>> dev
   } else {
     
     
     // Define properties
-<<<<<<< HEAD
-    dataObj = {'page_fans':[], 
-               'page_impressions':[], 
-               'page_impressions_organic':[], 
-               'page_impressions_paid':[], 
-               'page_impressions_viral':[], 
-               'page_fans_gender_age':[], 
-               'page_fan_adds':[], 
-               'page_consumptions':[], 
-               'page_positive_feedback_by_type':[], 
-               'page_negative_feedback':[]};
-    
-    // Loop queryChunks
-=======
     dataObj = {'page_fans':{},
                'page_views_total':{},
                'page_fan_adds':{},
@@ -189,24 +141,12 @@ function graphData(request, query) {
     
     // Loop queryChunks
     console.log("QUERYCHUNKS: "+queryChunks.length);
->>>>>>> dev
     for(var i = 0; i < queryChunks.length; i++) {
       
       // Set date range parameters
       var dateRangeSince = queryChunks[i]['since'].toISOString().slice(0, 10);
       var dateRangeUntil = queryChunks[i]['until'].toISOString().slice(0, 10);
       
-<<<<<<< HEAD
-      
-      var dateRange = "&since="+dateRangeSince+"&until="+dateRangeUntil;
-      
-      
-      
-      // Perform API Request
-      var requestUrl = requestEndpoint+query+dateRange+"&access_token="+pageToken;
-      
-      //console.log(requestUrl);
-=======
       var dateRangePostsUntil = new Date(queryChunks[i]['until'].getTime()-86400000).toISOString().slice(0, 10);
       
       //Replace all occurences of date range placeholders from query
@@ -217,34 +157,10 @@ function graphData(request, query) {
       var requestUrl = requestEndpoint+queryEnd+"&access_token="+pageToken;
       
       console.log(requestUrl);
->>>>>>> dev
       
       // Parse data
       var parseData = JSON.parse(getGraphData(requestUrl));
       
-<<<<<<< HEAD
-                  
-      // Loop 'data' object from response
-       if (parseData['data'].length > 0) {
-          for(var d = 0; d < parseData['data'].length; d++) {
-
-            for (var property in dataObj) {
-                            
-              // Determine if property exists in data object
-              if (parseData['data'][d]['name'] == property) {
-                
-                 console.log("PROPERTY FOUND: %s", property);
-                
-                // Push values to right property
-                dataObj[property].push(parseData['data'][d]['values']);
-              }
-              
-            }
-            
-          }
-        
-       }
-=======
       // Loop all nested objects in parseData object
       for (var parsedObj in parseData) {
         
@@ -280,21 +196,12 @@ function graphData(request, query) {
         }
         
       }
->>>>>>> dev
       
     }
   }
   
-<<<<<<< HEAD
-  //console.log(JSON.stringify(dataObj));
-  
-  
-  return dataObj;
-}
-=======
   //console.error(JSON.stringify(dataObj));
   
   
   return dataObj;
 }
->>>>>>> dev

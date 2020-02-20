@@ -7,7 +7,7 @@ function getGraphData(url) {
     return response;
 
   } catch (e) {
-    Utilities.sleep(1000);
+    
     var response = UrlFetchApp.fetch(url, { muteHttpExceptions: true});
     return response;
   }
@@ -136,6 +136,8 @@ function graphData(request, query) {
                'page_fans_gender_age':{},
                'page_fans_locale':{},
                'page_posts_impressions':{},
+               'page_posts_impressions_organic':{},
+               'page_posts_impressions_paid':{},
                'page_post_engagements':{},
                'page_fans_by_like_source':{}}; 
     
@@ -151,7 +153,6 @@ function graphData(request, query) {
       
       //Replace all occurences of date range placeholders from query
       queryEnd = query.replace(/\[dateSince\]/g, dateRangeSince).replace(/\[dateUntil\]/g, dateRangeUntil).replace(/\[datePostsUntil\]/g, dateRangePostsUntil);
-      
       
       // Perform API Request
       var requestUrl = requestEndpoint+queryEnd+"&access_token="+pageToken;

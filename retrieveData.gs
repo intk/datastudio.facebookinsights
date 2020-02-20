@@ -28,17 +28,78 @@ function reportMetric(report, type) {
       var row = {};
       
       row[type] = report[c][i]['value'];
-      if (type == 'pageNewLikes') {
+      
+     if (type == 'pageNewLikes') {
+        
+         // Don't show zeroes, when there is no data
+      if (row[type] == 0) {
+        row[type] = "";
+      }
+        
         //Data is reported on day after. Actual date is end_time - 24 hours. Change date format to Month (from YYYY-MM-DD to MM)
         row['pageNewLikesMonth'] = new Date(new Date(report[c][i]['end_time']).getTime()-86400000).toISOString().slice(4, 7).replace(/-/g, '');
       }
-     
+      
+      //Add dimension page posts engagement month
+      else if (type == 'pagePostsEngagement') {
+        
+         // Don't show zeroes, when there is no data
+      if (row[type] == 0) {
+        row[type] = "";
+      }
+        
+        //Data is reported on day after. Actual date is end_time - 24 hours. Change date format to Month (from YYYY-MM-DD to MM)
+        row['pagePostsEngagementMonth'] = new Date(new Date(report[c][i]['end_time']).getTime()-86400000).toISOString().slice(4, 7).replace(/-/g, '');
+      }
+      
+      //Add dimension page posts impressions month
+      else if (type.indexOf('pagePostsImpressions') > -1) {
+        
+         // Don't show zeroes, when there is no data
+      if (row[type] == 0) {
+        row[type] = "";
+      }
+        
+        //Data is reported on day after. Actual date is end_time - 24 hours. Change date format to Month (from YYYY-MM-DD to MM)
+        row['pagePostsImpressionsMonth'] = new Date(new Date(report[c][i]['end_time']).getTime()-86400000).toISOString().slice(4, 7).replace(/-/g, '');
+      }
       // Assign all data to rows list
       rows.push(row);
       
     }
   }
 
+  return rows;
+}
+
+function reportImpressions(report) {
+  var rows = [];
+  var reportTotal = report[0].day;
+  var reportOrganic = report[1].day;
+  var reportPaid = report[2].day;
+  
+  //Loop chunks
+  for (var c = 0; c <  reportTotal.length; c++) {
+     var valueRows = reportTotal[c];
+    
+    // Loop report
+    for (var i = 0; i < valueRows.length; i++) {
+      var row = {};
+      
+      // Assign values to right impressions metrics
+      row['pagePostsImpressionsTotal'] = reportTotal[c][i]['value'];
+      row['pagePostsImpressionsOrganic'] = reportOrganic[c][i]['value'];
+      row['pagePostsImpressionsPaid'] = reportPaid[c][i]['value'];
+      row['pagePostsImpressionsMonth'] = new Date(new Date(reportTotal[c][i]['end_time']).getTime()-86400000).toISOString().slice(4, 7).replace(/-/g, '');
+      
+      // Assign all data to rows list
+      rows.push(row);
+    }
+  }
+  
+  
+  
+  
   return rows;
 }
 

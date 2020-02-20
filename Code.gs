@@ -131,10 +131,27 @@ function getFields() {
       .setAggregation(aggregations.SUM);
   
   fields.newMetric()
-      .setId('pagePostsImpressions')
+      .setId('pagePostsImpressionsTotal')
       .setName('Total Impressions')
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
+  
+  fields.newMetric()
+      .setId('pagePostsImpressionsOrganic')
+      .setName('Organic Impressions')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
+  fields.newMetric()
+      .setId('pagePostsImpressionsPaid')
+      .setName('Paid Impressions')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
+  
+  fields.newDimension()
+      .setId('pagePostsImpressionsMonth')
+      .setName('Impressions Month')
+      .setType(types.MONTH);
   
   fields.newMetric()
       .setId('pagePostsEngagement')
@@ -159,7 +176,7 @@ function getSchema(request) {
 
 function getData(request) {   
   
-  var nestedData = graphData(request, "?fields=insights.metric(page_fans, page_views_total, page_fan_adds, page_fans_gender_age, page_fans_locale, page_posts_impressions, page_post_engagements, page_fans_by_like_source).since([dateSince]).until([dateUntil]),posts.fields(created_time, message, permalink_url, insights.metric(post_impressions, post_engaged_users)).since([dateSince]).until([datePostsUntil])");
+  var nestedData = graphData(request, "?fields=insights.metric(page_fans, page_views_total, page_fan_adds, page_fans_gender_age, page_fans_locale, page_posts_impressions, page_posts_impressions_organic, page_posts_impressions_paid, page_post_engagements, page_fans_by_like_source).since([dateSince]).until([dateUntil]),posts.fields(created_time, message, permalink_url, insights.metric(post_impressions, post_engaged_users)).since([dateSince]).until([datePostsUntil])");
   
   var requestedFieldIds = request.fields.map(function(field) {
     return field.name;
@@ -191,9 +208,12 @@ function getData(request) {
         if (field.name == 'postDate') {
           outputData.posts = nestedData['posts'];
         }
-        if (field.name == 'pagePostsImpressions') {
-          outputData.page_posts_impressions = nestedData['page_posts_impressions'];
+        if (field.name == 'pagePostsImpressionsTotal') {
+          var impressionsData = [nestedData['page_posts_impressions'],nestedData['page_posts_impressions_organic'],nestedData['page_posts_impressions_paid']];
+
+          outputData.page_posts_impressions = impressionsData;
         }
+    
         if (field.name == 'pagePostsEngagement') {
           outputData.page_posts_engagement = nestedData['page_post_engagements'];
         }
@@ -241,7 +261,7 @@ function reportToRows(requestedFields, report) {
     data = data.concat(reportPosts(report.posts));
   }  
   if (typeof report.page_posts_impressions !== 'undefined') {
-    data = data.concat(reportMetric(report.page_posts_impressions, 'pagePostsImpressions'));
+    data = data.concat(reportImpressions(report.page_posts_impressions));
   }
   if (typeof report.page_posts_engagement !== 'undefined') {
     data = data.concat(reportMetric(report.page_posts_engagement, 'pagePostsEngagement'));

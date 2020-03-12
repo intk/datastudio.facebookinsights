@@ -136,22 +136,21 @@ function getFields() {
       .setType(types.NUMBER)
       .setAggregation(aggregations.SUM);
   
-  fields.newMetric()
-      .setId('pagePostsImpressionsOrganic')
-      .setName('Organic Impressions')
-      .setType(types.NUMBER)
-      .setAggregation(aggregations.SUM);
-  
-  fields.newMetric()
-      .setId('pagePostsImpressionsPaid')
-      .setName('Paid Impressions')
-      .setType(types.NUMBER)
-      .setAggregation(aggregations.SUM);
-  
   fields.newDimension()
       .setId('pagePostsImpressionsMonth')
       .setName('Impressions Month')
       .setType(types.MONTH);
+  
+  fields.newDimension()
+      .setId('pagePostsImpressionsMedium')
+      .setName('Impressions Medium')
+      .setType(types.TEXT);
+  
+  fields.newMetric()
+      .setId('pagePostsImpressions')
+      .setName('Posts Impressions')
+      .setType(types.NUMBER)
+      .setAggregation(aggregations.SUM);
   
   fields.newMetric()
       .setId('pagePostsEngagement')
@@ -209,8 +208,11 @@ function getData(request) {
           outputData.posts = nestedData['posts'];
         }
         if (field.name == 'pagePostsImpressionsTotal') {
-          var impressionsData = [nestedData['page_posts_impressions'],nestedData['page_posts_impressions_organic'],nestedData['page_posts_impressions_paid']];
-
+          outputData.page_posts_impressions_total = nestedData['page_posts_impressions'];
+        }
+    
+        if (field.name == 'pagePostsImpressionsMonth' || field.name == 'pagePostsImpressionsMedium' || field.name == 'pagePostsImpressions') {
+          var impressionsData = [nestedData['page_posts_impressions_organic'],nestedData['page_posts_impressions_paid']];
           outputData.page_posts_impressions = impressionsData;
         }
     
@@ -260,6 +262,9 @@ function reportToRows(requestedFields, report) {
   if (typeof report.posts !== 'undefined') {
     data = data.concat(reportPosts(report.posts));
   }  
+  if (typeof report.page_posts_impressions_total !== 'undefined') {
+    data = data.concat(reportMetric(report.page_posts_impressions_total, 'pagePostsImpressionsTotal'));
+  }
   if (typeof report.page_posts_impressions !== 'undefined') {
     data = data.concat(reportImpressions(report.page_posts_impressions));
   }

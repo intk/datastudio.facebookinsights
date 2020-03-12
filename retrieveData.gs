@@ -52,17 +52,6 @@ function reportMetric(report, type) {
         row['pagePostsEngagementMonth'] = new Date(new Date(report[c][i]['end_time']).getTime()-86400000).toISOString().slice(4, 7).replace(/-/g, '');
       }
       
-      //Add dimension page posts impressions month
-      else if (type.indexOf('pagePostsImpressions') > -1) {
-        
-         // Don't show zeroes, when there is no data
-      if (row[type] == 0) {
-        row[type] = "";
-      }
-        
-        //Data is reported on day after. Actual date is end_time - 24 hours. Change date format to Month (from YYYY-MM-DD to MM)
-        row['pagePostsImpressionsMonth'] = new Date(new Date(report[c][i]['end_time']).getTime()-86400000).toISOString().slice(4, 7).replace(/-/g, '');
-      }
       // Assign all data to rows list
       rows.push(row);
       
@@ -72,25 +61,34 @@ function reportMetric(report, type) {
   return rows;
 }
 
+// Report impressions per medium
 function reportImpressions(report) {
   var rows = [];
-  var reportTotal = report[0].day;
-  var reportOrganic = report[1].day;
-  var reportPaid = report[2].day;
+  var reportOrganic = report[0].day;
+  var reportPaid = report[1].day;
   
   //Loop chunks
-  for (var c = 0; c <  reportTotal.length; c++) {
-     var valueRows = reportTotal[c];
+  for (var c = 0; c <  reportOrganic.length; c++) {
+     var valueRows = reportOrganic[c];
     
     // Loop report
     for (var i = 0; i < valueRows.length; i++) {
       var row = {};
       
-      // Assign values to right impressions metrics
-      row['pagePostsImpressionsTotal'] = reportTotal[c][i]['value'];
-      row['pagePostsImpressionsOrganic'] = reportOrganic[c][i]['value'];
-      row['pagePostsImpressionsPaid'] = reportPaid[c][i]['value'];
-      row['pagePostsImpressionsMonth'] = new Date(new Date(reportTotal[c][i]['end_time']).getTime()-86400000).toISOString().slice(4, 7).replace(/-/g, '');
+      // Assign values to organic impressions metrics
+      row['pagePostsImpressionsMonth'] = new Date(new Date(reportOrganic[c][i]['end_time']).getTime()-86400000).toISOString().slice(4, 7).replace(/-/g, '');
+      row['pagePostsImpressionsMedium'] = 'Organic';
+      row['pagePostsImpressions'] = reportOrganic[c][i]['value'] || "";
+      
+      // Assign all data to rows list
+      rows.push(row);
+      
+      row = {};
+      
+      // Assign values to paid impressions metrics
+      row['pagePostsImpressionsMonth'] = new Date(new Date(reportPaid[c][i]['end_time']).getTime()-86400000).toISOString().slice(4, 7).replace(/-/g, '');
+      row['pagePostsImpressionsMedium'] = 'Paid';
+      row['pagePostsImpressions'] = reportPaid[c][i]['value'] || "";
       
       // Assign all data to rows list
       rows.push(row);

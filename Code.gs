@@ -107,6 +107,17 @@ function getFields() {
       .setName('Post Message')
       .setType(types.TEXT);  
   
+   fields.newDimension()
+      .setId('postImageUrl')
+      .setName('Post Image Url')
+      .setType(types.URL);
+  
+   fields.newDimension()
+       .setId('postImage')
+       .setName('Post Image')
+       .setType(types.IMAGE)
+       .setFormula('IMAGE($postImageUrl)');
+  
   fields.newDimension()
       .setId('postLink')
       .setName('Link to post')
@@ -162,7 +173,12 @@ function getFields() {
       .setId('pagePostsEngagementMonth')
       .setName('Total Engagement Month')
       .setType(types.MONTH);
-
+  /*
+  fields.newDimension()
+      .setId('date')
+      .setName('Date')
+      .setType(types.YEAR_MONTH_DAY);
+      */
   
   return fields;
 }
@@ -174,8 +190,9 @@ function getSchema(request) {
 }
 
 function getData(request) {   
-  
-  var nestedData = graphData(request, "?fields=insights.metric(page_fans, page_views_total, page_fan_adds, page_fans_gender_age, page_fans_locale, page_posts_impressions, page_posts_impressions_organic, page_posts_impressions_paid, page_post_engagements, page_fans_by_like_source).since([dateSince]).until([dateUntil])");
+  console.log("Request : ",request);
+
+  var nestedData = graphData(request, "?fields=insights.metric(page_fans, page_views_total, page_fan_adds, page_fans_gender_age, page_fans_locale, page_posts_impressions, page_posts_impressions_organic, page_posts_impressions_paid, page_post_engagements, page_fans_by_like_source).since([dateSince]).until([dateUntil]),posts.fields(created_time, message, picture, permalink_url, insights.metric(post_impressions, post_engaged_users))");
   
   var requestedFieldIds = request.fields.map(function(field) {
     return field.name;
@@ -187,8 +204,10 @@ function getData(request) {
   
   // Perform data request per field
   request.fields.forEach(function(field) {
+    console.log("ForEach : ",field.name);
+
     var rows = [];
-    
+        
         if (field.name == 'pageLikesTotal') {
            outputData.page_likes_total = nestedData['page_fans'];
         }
@@ -215,27 +234,31 @@ function getData(request) {
           var impressionsData = [nestedData['page_posts_impressions_organic'],nestedData['page_posts_impressions_paid']];
           outputData.page_posts_impressions = impressionsData;
         }
-    
         if (field.name == 'pagePostsEngagement') {
           outputData.page_posts_engagement = nestedData['page_post_engagements'];
         }
         if (field.name == 'pageLikesSource') {
           outputData.page_likes_source = nestedData['page_fans_by_like_source'];
         }
-        
+        /*
+        if (field.name == 'date') {
+          outputData.page_likes_source = nestedData['page_fan_adds'];
+        }
+        */
+
         if (typeof outputData !== 'undefined') {    
           rows = reportToRows(requestedFields, outputData);
           // TODO: parseData.paging.next != undefined
         } else {
           rows = [];
         }
+        console.log("Row : ",rows);
+
          result = {
             schema: requestedFields.build(),
             rows: rows
           };  
-    
   });
-  
   return result;  
 }
 
@@ -243,6 +266,9 @@ function getData(request) {
 function reportToRows(requestedFields, report) {
   var rows = [];
   var data = [];  
+  
+  //console.log("report:",report);
+
   
   if (typeof report.page_likes_total !== 'undefined') {
     data = data.concat(reportPageLikesTotal(report.page_likes_total, 'pageLikesTotal'));
@@ -275,24 +301,29 @@ function reportToRows(requestedFields, report) {
     data = data.concat(reportPageLikesSource(report.page_likes_source, 'pageLikesSource'));
   }
   
+  /*
+  if (typeof report.date !== 'undefined') {
+    console.log("concat date")
+    data = data.concat(reportMetric(report.date, 'date'));
+  }
+  */
+  
   // Merge data
   for(var i = 0; i < data.length; i++) {
     row = [];    
     requestedFields.asArray().forEach(function (field) {
-      
+            
       //When field is undefined, don't create empty row
       if (typeof data[i][field.getId()] !== 'undefined') {
         return row.push(data[i][field.getId()]);
       }
-      
     });
     if (row.length > 0) {
       rows.push({ values: row });
     }
   }
-    
+  
   return rows;
-    
 }
 
 

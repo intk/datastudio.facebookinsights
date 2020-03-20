@@ -161,13 +161,13 @@ function graphData(request, query) {
       
       // Parse data
       var parseData = JSON.parse(getGraphData(requestUrl));
+
       
       // Loop all nested objects in parseData object
       for (var parsedObj in parseData) {
         
         // Determine if 'data' object exists in nested object
         if (typeof parseData[parsedObj]['data'] !== 'undefined' &&  parseData[parsedObj]['data'].length > 0) {
-          
           
           // Determine if nested object is a 'posts' object
           if (parsedObj == 'posts') {
@@ -185,9 +185,8 @@ function graphData(request, query) {
                   if (typeof dataObj[property][dataPeriod] === 'undefined') {
                     dataObj[property][dataPeriod] = [];
                   }
-                  dataObj[property][dataPeriod].push(parseData[parsedObj]['data'][d]['values']);
-                  
-                }
+                  dataObj[property][dataPeriod].push(parseData[parsedObj]['data'][d]['values']);    
+                } 
                 
               }
               

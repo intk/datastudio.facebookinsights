@@ -16,7 +16,7 @@ function reportMetric(report, type) {
   
   report = report.day;
   
-  console.log(JSON.stringify(report));
+  console.log("Report : ",JSON.stringify(report));
     
   //Loop chunks
   for (var c = 0; c <  report.length; c++) {
@@ -57,6 +57,8 @@ function reportMetric(report, type) {
       
     }
   }
+  console.log(rows);
+
 
   return rows;
 }
@@ -249,8 +251,8 @@ function reportPosts(report) {
         
         //Return date object to ISO formatted string
         row["postDate"] = new Date(report.data[i]['created_time']).toISOString().slice(0, 10);
-        
         row["postMessage"] = report.data[i]['message'] || report.data[i]['story'];
+        row["postImageUrl"] = report.data[i]['picture'];
         row["postLink"] = report.data[i]['permalink_url'];
         row["postImpressions"] = report.data[i].insights.data[0].values[0]['value'];
         row["postEngagement"] = report.data[i].insights.data[1].values[0]['value'];
